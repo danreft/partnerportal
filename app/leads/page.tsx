@@ -3,6 +3,7 @@
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Input, Select, Button, Table, Tag, Tabs, Progress } from "antd"
+import { UserOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import { leadsData, type LeadData } from "@/lib/mock-data"
 import { useState, useMemo } from "react"
@@ -77,22 +78,22 @@ export default function LeadsPage() {
     return (
       <div className="px-8 py-6">
         <div className="mb-6 grid grid-cols-3 gap-8">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">👤</span>
+          <div className="flex items-start gap-2">
+            <UserOutlined className="text-gray-400" />
             <div>
               <div className="text-xs text-gray-500">Contact</div>
               <div className="font-medium">{record.contact.name}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">✉️</span>
+          <div className="flex items-start gap-2">
+            <MailOutlined className="text-gray-400" />
             <div>
               <div className="text-xs text-gray-500">Email</div>
               <div className="font-medium">{record.contact.email}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">📞</span>
+          <div className="flex items-start gap-2">
+            <PhoneOutlined className="text-gray-400" />
             <div>
               <div className="text-xs text-gray-500">Phone</div>
               <div className="font-medium">{record.contact.phone}</div>

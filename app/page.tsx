@@ -15,10 +15,23 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
+import type { Chart as ChartInstance, LegendItem } from "chart.js"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend)
 
 export default function DashboardPage() {
+  // Shared stage labels used for dataset legends
+  const stageLabels = [
+    "Contact Form Submitted",
+    "Request for Services Submitted",
+    "Soil Data Collection",
+    "Agreement Sent",
+    "Lost",
+    "Analyst Team",
+    "Report Complete Not Paid",
+    "Won",
+  ]
+
   const barChartData = {
     labels: [
       "Contact Form Submitted",
@@ -43,48 +56,56 @@ export default function DashboardPage() {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     datasets: [
       {
+        label: stageLabels[0],
         data: [0.5, 1.5, 1.5, 1, 1, 1, 3, 3, 3, 1, 2, 4],
         borderColor: "#3b82f6",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[1],
         data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
         borderColor: "#8b5cf6",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[2],
         data: [1, 1.5, 1.5, 1, 1, 1, 1, 1, 1, 1, 1, 4],
         borderColor: "#a16207",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[3],
         data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
         borderColor: "#f97316",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[4],
         data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
         borderColor: "#ef4444",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[5],
         data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1.5, 1.5, 1.5, 4],
         borderColor: "#6ee7b7",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[6],
         data: [0.5, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 4],
         borderColor: "#10b981",
         backgroundColor: "transparent",
         tension: 0.4,
       },
       {
+        label: stageLabels[7],
         data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1.5, 2, 4],
         borderColor: "#06b6d4",
         backgroundColor: "transparent",
@@ -123,7 +144,47 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: "bottom" as const,
+        // Clicking legend items in Chart.js toggles the corresponding dataset visibility.
+        // We enable the default plugin here and provide nicer, compact labels.
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          // Remove the default line-through on hidden datasets; instead, dim the color dot.
+          generateLabels: (chart: ChartInstance): LegendItem[] => {
+            const datasets = chart.data.datasets || []
+            return datasets.map((ds: any, i: number): LegendItem => {
+              const visible = chart.isDatasetVisible(i)
+              // Resolve a base color from dataset border/background
+              const baseColor =
+                (typeof ds.borderColor === "string" && ds.borderColor) ||
+                (Array.isArray(ds.borderColor) && ds.borderColor[0]) ||
+                (typeof ds.backgroundColor === "string" && ds.backgroundColor) ||
+                (Array.isArray(ds.backgroundColor) && ds.backgroundColor[0]) ||
+                "#9ca3af" // gray-400 fallback
+
+              const swatchColor = visible ? baseColor : "#e5e7eb" // gray-200 when hidden
+
+              const item: LegendItem = {
+                text: ds.label || `Series ${i + 1}`,
+                fillStyle: swatchColor,
+                strokeStyle: swatchColor,
+                // Keep this false so Chart.js doesn't draw a strikethrough on the label text.
+                hidden: false,
+                lineCap: "butt",
+                lineDash: [],
+                lineDashOffset: 0,
+                lineJoin: "miter",
+                lineWidth: 2,
+                datasetIndex: i,
+                pointStyle: "circle",
+              }
+              return item
+            })
+          },
+        },
       },
     },
     scales: {

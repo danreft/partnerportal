@@ -76,81 +76,84 @@ export function Header() {
           open={drawerOpen}
           width={400}
         >
-          <div className="space-y-6">
-            {/* User Info Section */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#4a9d6f] text-white">
-                <User className="h-8 w-8" />
+          <div className="flex h-full min-h-full flex-col">
+            <div className="space-y-6">
+              {/* User Info Section */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#4a9d6f] text-white">
+                  <User className="h-8 w-8" />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">John Smith</div>
+                  <div className="text-sm text-gray-500">john.smith@example.com</div>
+                </div>
               </div>
+
+              <Divider />
+
+              {/* Referral Partner Info */}
               <div>
-                <div className="text-lg font-semibold text-gray-900">John Smith</div>
-                <div className="text-sm text-gray-500">john.smith@example.com</div>
-              </div>
-            </div>
-
-            <Divider />
-
-            {/* Referral Partner Info */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Referral Information</h3>
-              <div className="space-y-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">Your URL</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 text-sm text-gray-700 truncate bg-gray-50 px-3 py-2 rounded">
-                      https://soiltest.com/ref/johnsmith
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Referral Information</h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">Your URL</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 text-sm text-gray-700 truncate bg-gray-50 px-3 py-2 rounded">
+                        https://soiltest.com/ref/johnsmith
+                      </div>
+                      <Button
+                        size="small"
+                        type="default"
+                        onClick={() => copyToClipboard("https://soiltest.com/ref/johnsmith", "URL")}
+                      >
+                        Copy
+                      </Button>
                     </div>
-                    <Button
-                      size="small"
-                      type="primary"
-                      onClick={() => copyToClipboard("https://soiltest.com/ref/johnsmith", "URL")}
-                    >
-                      Copy
-                    </Button>
                   </div>
-                </div>
 
-                <div>
-                  <div className="text-xs font-medium text-gray-500 mb-1">Your Code</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 text-sm font-mono text-gray-700 bg-gray-50 px-3 py-2 rounded">
-                      JSMITH2024
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">Your Code</div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 text-sm font-mono text-gray-700 bg-gray-50 px-3 py-2 rounded">
+                        JSMITH2024
+                      </div>
+                      <Button size="small" type="default" onClick={() => copyToClipboard("JSMITH2024", "Code")}>
+                        Copy
+                      </Button>
                     </div>
-                    <Button size="small" type="primary" onClick={() => copyToClipboard("JSMITH2024", "Code")}>
-                      Copy
-                    </Button>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <Divider />
+              <Divider />
 
-            {/* Settings Menu */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Settings</h3>
-              <div className="space-y-2">
-                <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors">
-                  Change Password
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors">
-                  Email Preferences
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors">
-                  Notification Settings
-                </button>
-                <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors">
-                  Check for Updates
-                </button>
+              {/* Settings Menu */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Settings</h3>
+                <div className="space-y-2">
+                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                    Change Password
+                  </Button>
+                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                    Email Preferences
+                  </Button>
+                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                    Notification Settings
+                  </Button>
+                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                    Check for Updates
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <Divider />
-
-            {/* Logout Button */}
-            <Button type="primary" danger block size="large">
-              Logout
-            </Button>
+            {/* Bottom area with Logout */}
+            <div className="mt-auto pt-4">
+              <Divider />
+              <Button type="default" danger block size="large">
+                Logout
+              </Button>
+            </div>
           </div>
         </Drawer>
       </div>
