@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Select, Card, Row, Col, Statistic } from "antd"
 import { Bar, Line } from "react-chartjs-2"
+import { useEffect, useRef, useState } from "react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,11 +16,26 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import type { Chart as ChartInstance, LegendItem } from "chart.js"
+import type { Chart as ChartType } from "chart.js"
+// no extra types needed from chart.js for the ref
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend)
 
 export default function DashboardPage() {
+  const lineChartRef = useRef<ChartType<"line"> | null>(null)
+  const [legendVersion, setLegendVersion] = useState(0)
+
+  // Ensure Chart.js uses the same font family as the app (Geist Sans via body)
+  useEffect(() => {
+    try {
+      const bodyFont = getComputedStyle(document.body).fontFamily
+      if (bodyFont) {
+        ChartJS.defaults.font.family = bodyFont
+      }
+    } catch {
+      // no-op for SSR
+    }
+  }, [])
   // Shared stage labels used for dataset legends
   const stageLabels = [
     "Contact Form Submitted",
@@ -30,6 +46,18 @@ export default function DashboardPage() {
     "Analyst Team",
     "Report Complete Not Paid",
     "Won",
+  ]
+
+  // Fixed colors aligned with the stageLabels order for legend dots
+  const legendColors = [
+    "#3b82f6", // Contact Form Submitted (blue)
+    "#8b5cf6", // Request for Services Submitted (purple)
+    "#a16207", // Soil Data Collection (brown)
+    "#f97316", // Agreement Sent (orange)
+    "#ef4444", // Lost (red)
+    "#6ee7b7", // Analyst Team (mint)
+    "#10b981", // Report Complete Not Paid (green)
+    "#06b6d4", // Won (cyan)
   ]
 
   const barChartData = {
@@ -144,47 +172,7 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: true,
-        position: "bottom" as const,
-        // Clicking legend items in Chart.js toggles the corresponding dataset visibility.
-        // We enable the default plugin here and provide nicer, compact labels.
-        labels: {
-          usePointStyle: true,
-          boxWidth: 8,
-          boxHeight: 8,
-          // Remove the default line-through on hidden datasets; instead, dim the color dot.
-          generateLabels: (chart: ChartInstance): LegendItem[] => {
-            const datasets = chart.data.datasets || []
-            return datasets.map((ds: any, i: number): LegendItem => {
-              const visible = chart.isDatasetVisible(i)
-              // Resolve a base color from dataset border/background
-              const baseColor =
-                (typeof ds.borderColor === "string" && ds.borderColor) ||
-                (Array.isArray(ds.borderColor) && ds.borderColor[0]) ||
-                (typeof ds.backgroundColor === "string" && ds.backgroundColor) ||
-                (Array.isArray(ds.backgroundColor) && ds.backgroundColor[0]) ||
-                "#9ca3af" // gray-400 fallback
-
-              const swatchColor = visible ? baseColor : "#e5e7eb" // gray-200 when hidden
-
-              const item: LegendItem = {
-                text: ds.label || `Series ${i + 1}`,
-                fillStyle: swatchColor,
-                strokeStyle: swatchColor,
-                // Keep this false so Chart.js doesn't draw a strikethrough on the label text.
-                hidden: false,
-                lineCap: "butt",
-                lineDash: [],
-                lineDashOffset: 0,
-                lineJoin: "miter",
-                lineWidth: 2,
-                datasetIndex: i,
-                pointStyle: "circle",
-              }
-              return item
-            })
-          },
-        },
+        display: false,
       },
     },
     scales: {
@@ -192,6 +180,12 @@ export default function DashboardPage() {
         beginAtZero: true,
         ticks: {
           stepSize: 1,
+          font: { size: 11 },
+        },
+      },
+      x: {
+        ticks: {
+          font: { size: 11 },
         },
       },
     },
@@ -265,8 +259,40 @@ export default function DashboardPage() {
                 </Select>
               }
             >
-              <div style={{ height: 350 }}>
-                <Line data={lineChartData} options={lineOptions} />
+              <div className="relative z-0" style={{ height: 350 }}>
+                <Line ref={lineChartRef} data={lineChartData} options={lineOptions} />
+              </div>
+              {/* Custom legend: 2 rows x 4 columns, ordered as requested */}
+              <div className="relative z-10 mt-4 grid grid-cols-1 gap-y-2 gap-x-6 sm:[grid-template-columns:repeat(4,minmax(12rem,1fr))]">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+                  const color = legendColors[i] || "#9ca3af"
+                  const chart = lineChartRef.current
+                  const isVisible = chart ? chart.isDatasetVisible(i) : true
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className="flex items-center gap-2 text-left"
+                      onClick={() => {
+                        const c = lineChartRef.current
+                        if (c) {
+                          const vis = c.isDatasetVisible(i)
+                          c.setDatasetVisibility(i, !vis)
+                          c.update()
+                          setLegendVersion((v) => v + 1)
+                        }
+                      }}
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full ring-1 ring-black/10"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span className={(isVisible ? "text-gray-900" : "text-gray-400") + " whitespace-nowrap text-[11px]"}>
+                        {stageLabels[i]}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             </Card>
           </Col>

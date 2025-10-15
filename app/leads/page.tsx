@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { Input, Select, Button, Table, Tag, Tabs, Progress } from "antd"
+import { Input, Select, Button, Table, Tabs } from "antd"
 import { UserOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import { leadsData, type LeadData } from "@/lib/mock-data"
@@ -32,7 +32,7 @@ export default function LeadsPage() {
               ? true
               : true
 
-      const matchesStage = stageFilter === "All" || stageFilter === "Stage Type" || lead.stage === stageFilter
+  const matchesStage = stageFilter === "All" || lead.stage === stageFilter
 
       return matchesSearch && matchesYear && matchesStage
     })
@@ -73,7 +73,8 @@ export default function LeadsPage() {
 
     const completedStages = record.progress.stages.filter((s) => s.completed).length
     const totalStages = record.progress.stages.length
-    const progressPercent = (completedStages / totalStages) * 100
+    const currentIndex = record.progress.stages.findIndex((s) => s.current)
+    const nextIndex = currentIndex >= 0 && currentIndex + 1 < totalStages ? currentIndex + 1 : -1
 
     return (
       <div className="px-8 py-6">
@@ -102,13 +103,24 @@ export default function LeadsPage() {
         </div>
 
         <div className="relative">
-          <Progress
-            percent={progressPercent}
-            showInfo={false}
-            strokeColor="#10b981"
-            trailColor="#e5e7eb"
-            className="mb-4"
-          />
+          {/* Segmented progress bar: completed = green, next = dark gray, future = light gray */}
+          <div
+            className="mb-4 grid h-2 w-full overflow-hidden rounded-full"
+            style={{ gridTemplateColumns: `repeat(${totalStages}, minmax(0, 1fr))`, gap: 2 }}
+          >
+            {record.progress.stages.map((_, i) => (
+              <div
+                key={i}
+                className={
+                  i < completedStages
+                    ? "bg-green-600"
+                    : i === nextIndex
+                      ? "bg-gray-400"
+                      : "bg-gray-200"
+                }
+              />
+            ))}
+          </div>
           <div className="flex justify-between">
             {record.progress.stages.map((stage, index) => (
               <div
@@ -164,7 +176,22 @@ export default function LeadsPage() {
       title: "Stage",
       dataIndex: "stage",
       key: "stage",
-      render: (stage: string, record: LeadData) => <Tag color={record.stageColor}>{stage}</Tag>,
+      render: (stage: string, record: LeadData) => {
+        const colorClass =
+          record.stageColor === "blue"
+            ? "bg-blue-500"
+            : record.stageColor === "purple"
+              ? "bg-purple-600"
+              : record.stageColor === "orange"
+                ? "bg-amber-600"
+                : "bg-gray-400"
+        return (
+          <div className="flex items-center gap-2">
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${colorClass}`} />
+            <span className="text-gray-800">{stage}</span>
+          </div>
+        )
+      },
       sorter: (a, b) => a.stage.localeCompare(b.stage),
     },
   ]
