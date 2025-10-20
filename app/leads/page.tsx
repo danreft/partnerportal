@@ -38,6 +38,10 @@ export default function LeadsPage() {
     })
   }, [searchText, yearFilter, stageFilter])
 
+  // Split filtered data into Active (non-Lost) and Lost buckets
+  const activeData = useMemo(() => filteredData.filter((l) => l.stage !== "Lost"), [filteredData])
+  const lostData = useMemo(() => filteredData.filter((l) => l.stage === "Lost"), [filteredData])
+
   // CSV export removed per request
 
   const uniqueStages = useMemo(() => {
@@ -161,11 +165,14 @@ export default function LeadsPage() {
               ? "bg-purple-600"
               : record.stageColor === "orange"
                 ? "bg-amber-600"
-                : "bg-gray-400"
+                : record.stageColor === "red"
+                  ? "bg-red-500"
+                  : "bg-gray-400"
+        const label = stage === "Lost" && record.lostReason ? `Lost - ${record.lostReason}` : stage
         return (
           <div className="flex items-center gap-2">
             <span className={`inline-block h-2.5 w-2.5 rounded-full ${colorClass}`} />
-            <span className="text-gray-800">{stage}</span>
+            <span className="text-gray-800">{label}</span>
           </div>
         )
       },
@@ -222,9 +229,10 @@ export default function LeadsPage() {
               children: (
                 <Table
                   columns={columns}
-                  dataSource={filteredData}
+                  dataSource={activeData}
                   expandable={{
                     expandedRowRender,
+                    rowExpandable: (record) => Boolean((record as LeadData).progress),
                     defaultExpandedRowKeys: ["1"],
                   }}
                   pagination={false}
@@ -235,6 +243,21 @@ export default function LeadsPage() {
               key: "2",
               label: "Completed",
               children: <Table columns={columns} dataSource={[]} pagination={false} />,
+            },
+            {
+              key: "3",
+              label: "Lost",
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={lostData}
+                  expandable={{
+                    expandedRowRender,
+                    rowExpandable: (record) => Boolean((record as LeadData).progress),
+                  }}
+                  pagination={false}
+                />
+              ),
             },
           ]}
         />
