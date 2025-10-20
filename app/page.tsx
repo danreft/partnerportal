@@ -195,27 +195,20 @@ export default function DashboardPage() {
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
       <main className="flex-1 px-6 py-8">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          </div>
-
-          <Select defaultValue="This year" style={{ width: 120 }}>
-            <Select.Option value="This year">This year</Select.Option>
-            <Select.Option value="Last year">Last year</Select.Option>
-          </Select>
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
         </div>
 
         <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
             <Card>
-              <Statistic title="Total Referrals" value={12} valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }} />
+              <Statistic title="In Process Deals" value={12} valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }} />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="Total Acres Referred"
+                title="In Process Acres"
                 value={5230}
                 valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
               />
@@ -284,8 +277,11 @@ export default function DashboardPage() {
                       }}
                     >
                       <span
-                        className="inline-block h-3 w-3 rounded-full ring-1 ring-black/10"
-                        style={{ backgroundColor: color }}
+                        className="inline-block h-3 w-3 rounded-full"
+                        style={{
+                          backgroundColor: isVisible ? color : "transparent",
+                          border: isVisible ? "2px solid transparent" : `2px solid ${color}`,
+                        }}
                       />
                       <span className={(isVisible ? "text-gray-900" : "text-gray-400") + " whitespace-nowrap text-[11px]"}>
                         {stageLabels[i]}
