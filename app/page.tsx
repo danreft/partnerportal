@@ -202,7 +202,7 @@ export default function DashboardPage() {
 
         <Row gutter={[12, 12]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
-            <Card bodyStyle={{ padding: 16 }}>
+            <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
                 <Statistic
                   title="In Process Deals"
@@ -219,7 +219,7 @@ export default function DashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bodyStyle={{ padding: 16 }}>
+            <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
                 <Statistic
                   title="Completed Deals"
@@ -236,7 +236,7 @@ export default function DashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bodyStyle={{ padding: 16 }}>
+            <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
                 <Statistic
                   title="Lost Deals"
