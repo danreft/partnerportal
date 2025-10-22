@@ -166,7 +166,7 @@ export const leadsData: LeadData[] = [
   {
     key: "7",
     leadName: "Redwood Ridge Holdings",
-    acres: "0 acres",
+    acres: "2 acres",
     submissionDate: "10/08/2025",
     stage: "Lost",
     stageColor: "red",
