@@ -2,326 +2,223 @@
 
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { Select, Card, Row, Col } from "antd"
-import { Bar, Line } from "react-chartjs-2"
-import { useEffect, useRef, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { leadsData } from "@/lib/mock-data"
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js"
-import type { Chart as ChartType } from "chart.js"
-// no extra types needed from chart.js for the ref
+import { Check, Slash } from "lucide-react"
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend)
-
-function Metric({ label, value }: { label: string; value: number | string }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="flex flex-col">
-      <div className="font-bold leading-none" style={{ fontSize: "2.5rem" }}>
-        {value}
-      </div>
+      <div className="text-4xl font-semibold leading-none tracking-tight">{value}</div>
       <div className="mt-1 text-sm text-gray-500">{label}</div>
     </div>
   )
 }
 
 export default function DashboardPage() {
-  const lineChartRef = useRef<ChartType<"line"> | null>(null)
-  const [legendVersion, setLegendVersion] = useState(0)
+  // Helpers
+  const parseAcres = (acres: string) => {
+    const digits = acres.replace(/[^0-9]/g, "")
+    return digits ? parseInt(digits, 10) : 0
+  }
+  const fmt = (n: number) => n.toLocaleString()
 
-  // Ensure Chart.js uses the same font family as the app (Geist Sans via body)
-  useEffect(() => {
-    try {
-      const bodyFont = getComputedStyle(document.body).fontFamily
-      if (bodyFont) {
-        ChartJS.defaults.font.family = bodyFont
-      }
-    } catch {
-      // no-op for SSR
-    }
-  }, [])
-  // Shared stage labels used for dataset legends
-  const stageLabels = [
-    "Contact Form Submitted",
-    "Request for Services Submitted",
-    "Soil Data Collection",
+  // Basic buckets
+  const referrals = leadsData.length
+  const wonLeads = leadsData.filter((l) => l.stage === "Won")
+  const lostLeads = leadsData.filter((l) => l.stage === "Lost")
+  const activeLeads = leadsData.filter((l) => l.stage !== "Won" && l.stage !== "Lost")
+
+  const IN_PROCESS = {
+    deals: activeLeads.length,
+    acres: fmt(activeLeads.reduce((sum, l) => sum + parseAcres(l.acres), 0)),
+  }
+  const REFERRALS = referrals
+  const WON = {
+    deals: wonLeads.length,
+    acres: wonLeads.reduce((sum, l) => sum + parseAcres(l.acres), 0),
+  }
+  const LOST = {
+    deals: lostLeads.length,
+    acres: lostLeads.reduce((sum, l) => sum + parseAcres(l.acres), 0),
+  }
+
+  // Stage table: derive current/furthest stage for active leads and map to 5 display buckets
+  type BucketKey =
+    | "RFS Submitted"
+    | "Agreement Sent"
+    | "Soil Data Collection"
+    | "Analyst Team"
+    | "Report Complete | Not Paid"
+
+  const order: BucketKey[] = [
+    "RFS Submitted",
     "Agreement Sent",
-    "Lost",
+    "Soil Data Collection",
     "Analyst Team",
-    "Report Complete Not Paid",
-    "Won",
+    "Report Complete | Not Paid",
   ]
 
-  // Fixed colors aligned with the stageLabels order for legend dots
-  const legendColors = [
-    "#3b82f6", // Contact Form Submitted (blue)
-    "#8b5cf6", // Request for Services Submitted (purple)
-    "#a16207", // Soil Data Collection (brown)
-    "#f97316", // Agreement Sent (orange)
-    "#ef4444", // Lost (red)
-    "#6ee7b7", // Analyst Team (mint)
-    "#10b981", // Report Complete Not Paid (green)
-    "#06b6d4", // Won (cyan)
-  ]
+  const buckets: Record<BucketKey, { deals: number; acres: number }> = Object.fromEntries(
+    order.map((k) => [k, { deals: 0, acres: 0 }])
+  ) as Record<BucketKey, { deals: number; acres: number }>
 
-  const barChartData = {
-    labels: [
-      "Contact Form Submitted",
-      "Request for Services Submitted",
-      "Soil Data Collection",
-      "Agreement Sent",
-      "Lost",
-      "Analyst Team",
-      "Report Complete Not Paid",
-      "Won",
-    ],
-    datasets: [
-      {
-        data: [1, 2, 2, 2, 2, 3, 3, 5],
-        backgroundColor: ["#3b82f6", "#8b5cf6", "#a16207", "#06b6d4", "#ef4444", "#6ee7b7", "#10b981", "#047857"],
-        borderRadius: 4,
-      },
-    ],
+  for (const lead of activeLeads) {
+    const stages = lead.progress?.stages ?? []
+    const current = stages.find((s) => s.current)
+    const completed = stages.filter((s) => s.completed)
+    const lastCompleted = completed.length ? completed[completed.length - 1] : undefined
+    const stageName = (current?.name || lastCompleted?.name || lead.stage || "").trim()
+
+    let key: BucketKey
+    switch (stageName) {
+      case "Request for Services Submitted":
+      case "Contact Form Submitted":
+        key = "RFS Submitted"
+        break
+      case "Agreement Sent":
+      case "Service Contract Under Review":
+        key = "Agreement Sent"
+        break
+      case "Soil Data Collection":
+        key = "Soil Data Collection"
+        break
+      case "Analyst Team":
+        key = "Analyst Team"
+        break
+      case "Report Complete/Not Paid":
+        key = "Report Complete | Not Paid"
+        break
+      default:
+        // Map other early-stage labels into the first bucket
+        key = "RFS Submitted"
+    }
+
+    buckets[key].deals += 1
+    buckets[key].acres += parseAcres(lead.acres)
   }
 
-  const lineChartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    datasets: [
-      {
-        label: stageLabels[0],
-        data: [0.5, 1.5, 1.5, 1, 1, 1, 3, 3, 3, 1, 2, 4],
-        borderColor: "#3b82f6",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[1],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
-        borderColor: "#8b5cf6",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[2],
-        data: [1, 1.5, 1.5, 1, 1, 1, 1, 1, 1, 1, 1, 4],
-        borderColor: "#a16207",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[3],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
-        borderColor: "#f97316",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[4],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 4],
-        borderColor: "#ef4444",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[5],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1.5, 1.5, 1.5, 4],
-        borderColor: "#6ee7b7",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[6],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 4],
-        borderColor: "#10b981",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-      {
-        label: stageLabels[7],
-        data: [0.5, 1, 1, 1, 1, 1, 1, 1, 1, 1.5, 2, 4],
-        borderColor: "#06b6d4",
-        backgroundColor: "transparent",
-        tension: 0.4,
-      },
-    ],
-  }
-
-  const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-        },
-      },
-      x: {
-        ticks: {
-          font: {
-            size: 11,
-          },
-        },
-      },
-    },
-  }
-
-  const lineOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-          font: { size: 11 },
-        },
-      },
-      x: {
-        ticks: {
-          font: { size: 11 },
-        },
-      },
-    },
-  }
-
-  // Top metrics: Referrals overview
-  const referralsReceived = leadsData.length
+  const stageRows = order.map((stage) => ({
+    stage,
+    deals: buckets[stage].deals,
+    acres: buckets[stage].acres,
+  }))
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
-      <main className="flex-1 px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
+        <h1 className="mb-4 text-2xl font-semibold text-gray-900">Dashboard</h1>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
+          {/* Row 1: Left In-Process card (combined) and Right referrals */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="border-b !pb-1">
+                <CardTitle className="text-base text-gray-800">In-Process</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-stretch divide-x divide-gray-200">
+                  <div className="flex-none w-[220px] sm:w-[260px] pr-6 sm:pr-8">
+                    <Stat label="Deals" value={IN_PROCESS.deals} />
+                  </div>
+                  <div className="flex-1 pl-6 sm:pl-8">
+                    <Stat label="Acres" value={IN_PROCESS.acres} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <Card>
+              <CardHeader className="border-b !pb-1">
+                <CardTitle className="text-base text-gray-800">Referrals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Stat label="Received" value={REFERRALS} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Row 2: Left status table (span 2 cols) and Right Won/Lost stacked filling full height */}
+          <div className="lg:col-span-2">
+            <Card className="h-full pt-0 overflow-hidden">
+              <CardContent className="h-full p-0">
+                {/* Faux table that can stretch vertically to fill space */}
+                <div className="grid h-full grid-rows-[auto_1fr]">
+                  {/* Header */}
+                  <div className="grid grid-cols-[1fr_110px_110px] items-center gap-2 border-b border-gray-300 bg-gray-50 px-6 py-4 text-sm text-gray-700">
+                    <div className="font-semibold text-gray-800">Stage</div>
+                    <div className="border-l border-gray-300 pl-6 text-left font-semibold">Deals</div>
+                    <div className="border-l border-gray-300 pl-6 text-left font-semibold">Acres</div>
+                  </div>
+                  {/* Body fills remaining height; rows share height equally */}
+                  <div
+                    className="grid divide-y"
+                    style={{ gridTemplateRows: `repeat(${stageRows.length}, 1fr)` }}
+                  >
+                    {stageRows.map((r) => (
+                      <div
+                        key={r.stage}
+                        className="grid grid-cols-[1fr_110px_110px] items-center gap-2 px-6"
+                      >
+                        <div className="text-gray-700">{r.stage}</div>
+                        <div className="pl-[25px] text-left tabular-nums">{r.deals}</div>
+                        <div className="pl-[25px] text-left tabular-nums">{fmt(r.acres)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex h-full flex-col justify-between gap-4">
+            <Card>
+              <CardHeader className="border-b !pb-1">
+                <CardTitle className="flex items-center gap-2 text-base text-gray-800">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  Won
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-stretch divide-x divide-gray-200">
+                  <div className="flex-1 pr-6">
+                    <Stat label="Deals" value={WON.deals} />
+                  </div>
+                  <div className="flex-1 pl-6">
+                    <Stat label="Acres" value={fmt(WON.acres)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="border-b !pb-1">
+                <CardTitle className="flex items-center gap-2 text-base text-gray-800">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-700 text-white">
+                    <Slash className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  Lost
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-stretch divide-x divide-gray-200">
+                  <div className="flex-1 pr-6">
+                    <Stat label="Deals" value={LOST.deals} />
+                  </div>
+                  <div className="flex-1 pl-6">
+                    <Stat label="Acres" value={fmt(LOST.acres)} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        <Row gutter={[12, 12]} className="mb-8">
-          {/* New: Referrals card placed to the left of In Process Deals */}
-          <Col xs={24} sm={12} lg={6}>
-            <Card styles={{ body: { padding: 16 } }}>
-              <Metric label="Referrals Received" value={referralsReceived} />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card styles={{ body: { padding: 16 } }}>
-              <div className="flex flex-col">
-                <Metric label="In Process Deals" value={12} />
-                <div className="my-2 h-px w-full bg-gray-200" />
-                <Metric label="In Process Acres" value={5230} />
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card styles={{ body: { padding: 16 } }}>
-              <div className="flex flex-col">
-                <Metric label="Won Deals" value={2} />
-                <div className="my-2 h-px w-full bg-gray-200" />
-                <Metric label="Won Acres" value={871} />
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card styles={{ body: { padding: 16 } }}>
-              <div className="flex flex-col">
-                <Metric label="Lost Deals" value={leadsData.filter((l) => l.stage === "Lost").length} />
-                <div className="my-2 h-px w-full bg-gray-200" />
-                <Metric
-                  label="Lost Acres"
-                  value={leadsData
-                    .filter((l) => l.stage === "Lost")
-                    .reduce((sum, l) => sum + (Number.parseInt(l.acres.replace(/[^0-9]/g, "")) || 0), 0)}
-                />
-              </div>
-            </Card>
-          </Col>
-        </Row>
-
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={12}>
-            <Card
-              title="Current Stage Status"
-              extra={
-                <Select defaultValue="Referrals" style={{ width: 120 }}>
-                  <Select.Option value="Referrals">Referrals</Select.Option>
-                  <Select.Option value="Acres">Acres</Select.Option>
-                </Select>
-              }
-            >
-              <div style={{ height: 350 }}>
-                <Bar data={barChartData} options={barOptions} />
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} lg={12}>
-            <Card
-              title="Monthly Stage Status"
-              extra={
-                <Select defaultValue="Referrals" style={{ width: 120 }}>
-                  <Select.Option value="Referrals">Referrals</Select.Option>
-                  <Select.Option value="Acres">Acres</Select.Option>
-                </Select>
-              }
-            >
-              <div className="relative z-0" style={{ height: 350 }}>
-                <Line ref={lineChartRef} data={lineChartData} options={lineOptions} />
-              </div>
-              {/* Custom legend: 2 rows x 4 columns, ordered as requested */}
-              <div className="relative z-10 mt-4 grid grid-cols-1 gap-y-2 gap-x-6 sm:[grid-template-columns:repeat(4,minmax(12rem,1fr))]">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-                  const color = legendColors[i] || "#9ca3af"
-                  const chart = lineChartRef.current
-                  const isVisible = chart ? chart.isDatasetVisible(i) : true
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      className="flex items-center gap-2 text-left"
-                      onClick={() => {
-                        const c = lineChartRef.current
-                        if (c) {
-                          const vis = c.isDatasetVisible(i)
-                          c.setDatasetVisibility(i, !vis)
-                          c.update()
-                          setLegendVersion((v) => v + 1)
-                        }
-                      }}
-                    >
-                      <span
-                        className="inline-block h-3 w-3 rounded-full"
-                        style={{
-                          backgroundColor: isVisible ? color : "transparent",
-                          border: isVisible ? "2px solid transparent" : `2px solid ${color}`,
-                        }}
-                      />
-                      <span className={(isVisible ? "text-gray-900" : "text-gray-400") + " whitespace-nowrap text-[11px]"}>
-                        {stageLabels[i]}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
-          </Col>
-        </Row>
       </main>
       <Footer />
     </div>
