@@ -48,6 +48,57 @@ export const leadsData: LeadData[] = [
       ],
     },
   },
+  // Won deals mock data
+  {
+    key: "10",
+    leadName: "Green Valley Partners",
+    acres: "520 acres",
+    submissionDate: "10/17/2025",
+    stage: "Won",
+    stageColor: "green",
+    contact: {
+      name: "Lena Hart",
+      email: "lena.hart@greenvalley.com",
+      phone: "(555) 555-5610",
+    },
+    progress: {
+      stages: [
+        { name: "Contact Form Submitted", completed: true, date: "09/12/2025" },
+        { name: "Request for Services Submitted", completed: true, date: "09/18/2025" },
+        { name: "Agreement Sent", completed: true, date: "09/22/2025" },
+        { name: "Service Contract Under Review", completed: true, date: "09/28/2025" },
+        { name: "Soil Data Collection", completed: true, date: "10/02/2025" },
+        { name: "Analyst Team", completed: true, date: "10/08/2025" },
+        { name: "Report Complete/Not Paid", completed: true, date: "10/12/2025" },
+        { name: "Won", completed: true, date: "10/17/2025" },
+      ],
+    },
+  },
+  {
+    key: "11",
+    leadName: "Blue River Co-op",
+    acres: "305 acres",
+    submissionDate: "10/19/2025",
+    stage: "Won",
+    stageColor: "green",
+    contact: {
+      name: "Marcus Lee",
+      email: "mlee@blueriver.coop",
+      phone: "(555) 555-5611",
+    },
+    progress: {
+      stages: [
+        { name: "Contact Form Submitted", completed: true, date: "09/20/2025" },
+        { name: "Request for Services Submitted", completed: true, date: "09/24/2025" },
+        { name: "Agreement Sent", completed: true, date: "09/29/2025" },
+        { name: "Service Contract Under Review", completed: true, date: "10/03/2025" },
+        { name: "Soil Data Collection", completed: true, date: "10/06/2025" },
+        { name: "Analyst Team", completed: true, date: "10/10/2025" },
+        { name: "Report Complete/Not Paid", completed: true, date: "10/14/2025" },
+        { name: "Won", completed: true, date: "10/19/2025" },
+      ],
+    },
+  },
   {
     key: "2",
     leadName: "David & Valier Appley",

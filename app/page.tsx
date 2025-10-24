@@ -192,6 +192,13 @@ export default function DashboardPage() {
     },
   }
 
+  // Top metrics: Referrals overview
+  const referralsReceived = leadsData.length
+  const referralsAcres = leadsData.reduce(
+    (sum, l) => sum + (Number.parseInt(l.acres.replace(/[^0-9]/g, "")) || 0),
+    0
+  )
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
@@ -201,6 +208,24 @@ export default function DashboardPage() {
         </div>
 
         <Row gutter={[12, 12]} className="mb-8">
+          {/* New: Referrals card placed to the left of In Process Deals */}
+          <Col xs={24} sm={12} lg={6}>
+            <Card styles={{ body: { padding: 16 } }}>
+              <div className="flex flex-col">
+                <Statistic
+                  title="Referrals Received"
+                  value={referralsReceived}
+                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
+                />
+                <div className="my-2 h-px w-full bg-gray-200" />
+                <Statistic
+                  title="Referrals Acres"
+                  value={referralsAcres}
+                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
+                />
+              </div>
+            </Card>
+          </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">

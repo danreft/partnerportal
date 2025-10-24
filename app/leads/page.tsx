@@ -39,8 +39,12 @@ export default function LeadsPage() {
   }, [searchText, yearFilter, stageFilter])
 
   // Split filtered data into Active (non-Lost) and Lost buckets
-  const activeData = useMemo(() => filteredData.filter((l) => l.stage !== "Lost"), [filteredData])
+  const activeData = useMemo(
+    () => filteredData.filter((l) => l.stage !== "Lost" && l.stage !== "Won"),
+    [filteredData]
+  )
   const lostData = useMemo(() => filteredData.filter((l) => l.stage === "Lost"), [filteredData])
+  const completedData = useMemo(() => filteredData.filter((l) => l.stage === "Won"), [filteredData])
 
   // CSV export removed per request
 
@@ -50,46 +54,54 @@ export default function LeadsPage() {
   }, [])
 
   const expandedRowRender = (record: LeadData) => {
-    if (!record.progress) return null
+    const hasProgress = Boolean(record.progress)
 
-    const completedStages = record.progress.stages.filter((s) => s.completed).length
-    const totalStages = record.progress.stages.length
-    const currentIndex = record.progress.stages.findIndex((s) => s.current)
+    // Contact-only section used for Lost and for records without progress
+    const contactSection = (
+      <div className="mb-3 grid grid-cols-3 gap-4">
+        <div className="flex items-start gap-2">
+          <UserOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Contact</div>
+            <div className="font-medium">{record.contact.name}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <MailOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Email</div>
+            <div className="font-medium">{record.contact.email}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <PhoneOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Phone</div>
+            <div className="font-medium">{record.contact.phone}</div>
+          </div>
+        </div>
+      </div>
+    )
+
+    // If Lost or no progress, show only contact info
+    if (record.stage === "Lost" || !hasProgress) {
+      return <div className="px-6 py-3">{contactSection}</div>
+    }
+
+    const completedStages = record.progress!.stages.filter((s) => s.completed).length
+    const totalStages = record.progress!.stages.length
+    const currentIndex = record.progress!.stages.findIndex((s) => s.current)
     const nextIndex = currentIndex >= 0 && currentIndex + 1 < totalStages ? currentIndex + 1 : -1
 
     return (
-      <div className="px-8 py-6">
-        <div className="mb-6 grid grid-cols-3 gap-8">
-          <div className="flex items-start gap-2">
-            <UserOutlined className="text-gray-400" />
-            <div>
-              <div className="text-xs text-gray-500">Contact</div>
-              <div className="font-medium">{record.contact.name}</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <MailOutlined className="text-gray-400" />
-            <div>
-              <div className="text-xs text-gray-500">Email</div>
-              <div className="font-medium">{record.contact.email}</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <PhoneOutlined className="text-gray-400" />
-            <div>
-              <div className="text-xs text-gray-500">Phone</div>
-              <div className="font-medium">{record.contact.phone}</div>
-            </div>
-          </div>
-        </div>
-
+      <div className="px-6 py-3">
+        {contactSection}
         <div className="relative">
-          {/* Segmented progress bar: completed = green, next = dark gray, future = light gray */}
           <div
-            className="mb-4 grid h-2 w-full overflow-hidden rounded-full"
+            className="mb-2 grid h-2 w-full overflow-hidden rounded-full"
             style={{ gridTemplateColumns: `repeat(${totalStages}, minmax(0, 1fr))`, gap: 2 }}
           >
-            {record.progress.stages.map((_, i) => (
+            {record.progress!.stages.map((_, i) => (
               <div
                 key={i}
                 className={
@@ -103,7 +115,7 @@ export default function LeadsPage() {
             ))}
           </div>
           <div className="flex justify-between">
-            {record.progress.stages.map((stage, index) => (
+            {record.progress!.stages.map((stage, index) => (
               <div
                 key={index}
                 className="flex flex-col items-center"
@@ -167,7 +179,9 @@ export default function LeadsPage() {
                 ? "bg-amber-600"
                 : record.stageColor === "red"
                   ? "bg-red-500"
-                  : "bg-gray-400"
+                  : record.stageColor === "green"
+                    ? "bg-green-600"
+                    : "bg-gray-400"
         const label = stage === "Lost" && record.lostReason ? `Lost - ${record.lostReason}` : stage
         return (
           <div className="flex items-center gap-2">
@@ -232,7 +246,6 @@ export default function LeadsPage() {
                   dataSource={activeData}
                   expandable={{
                     expandedRowRender,
-                    rowExpandable: (record) => Boolean((record as LeadData).progress),
                     defaultExpandedRowKeys: ["1"],
                   }}
                   pagination={false}
@@ -242,7 +255,16 @@ export default function LeadsPage() {
             {
               key: "2",
               label: "Completed",
-              children: <Table columns={columns} dataSource={[]} pagination={false} />,
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={completedData}
+                  expandable={{
+                    expandedRowRender,
+                  }}
+                  pagination={false}
+                />
+              ),
             },
             {
               key: "3",
@@ -253,7 +275,6 @@ export default function LeadsPage() {
                   dataSource={lostData}
                   expandable={{
                     expandedRowRender,
-                    rowExpandable: (record) => Boolean((record as LeadData).progress),
                   }}
                   pagination={false}
                 />
