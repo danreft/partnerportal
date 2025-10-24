@@ -3,6 +3,8 @@ export interface LeadData {
   leadName: string
   acres: string
   submissionDate: string
+  // Mock: closed date for won/lost etc.
+  closedDate?: string
   stage: string
   stageColor: string
   // Optional: when a lead is lost, capture the reason
@@ -20,6 +22,17 @@ export interface LeadData {
       current?: boolean
     }>
   }
+}
+
+// date util to add days to an MM/DD/YYYY string and return MM/DD/YYYY
+function addDays(dateStr: string, days: number): string {
+  const [mm, dd, yyyy] = dateStr.split("/").map((s) => parseInt(s, 10))
+  const d = new Date(yyyy, (mm || 1) - 1, dd || 1)
+  d.setDate(d.getDate() + days)
+  const m = (d.getMonth() + 1).toString().padStart(2, "0")
+  const day = d.getDate().toString().padStart(2, "0")
+  const y = d.getFullYear().toString()
+  return `${m}/${day}/${y}`
 }
 
 export const leadsData: LeadData[] = [
@@ -54,6 +67,7 @@ export const leadsData: LeadData[] = [
     leadName: "Green Valley Partners",
     acres: "520 acres",
     submissionDate: "10/17/2025",
+    closedDate: "10/17/2025", // date of the 'Won' stage
     stage: "Won",
     stageColor: "green",
     contact: {
@@ -79,6 +93,7 @@ export const leadsData: LeadData[] = [
     leadName: "Blue River Co-op",
     acres: "305 acres",
     submissionDate: "10/19/2025",
+    closedDate: "10/19/2025", // date of the 'Won' stage
     stage: "Won",
     stageColor: "green",
     contact: {
@@ -205,6 +220,7 @@ export const leadsData: LeadData[] = [
     leadName: "Golden Valley Farms",
     acres: "100 acres",
     submissionDate: "10/05/2025",
+    closedDate: addDays("10/05/2025", 3),
     stage: "Lost",
     stageColor: "red",
     lostReason: "Internal Testing",
@@ -219,6 +235,7 @@ export const leadsData: LeadData[] = [
     leadName: "Redwood Ridge Holdings",
     acres: "2 acres",
     submissionDate: "10/08/2025",
+    closedDate: addDays("10/08/2025", 3),
     stage: "Lost",
     stageColor: "red",
     lostReason: "Spam",
@@ -233,6 +250,7 @@ export const leadsData: LeadData[] = [
     leadName: "Prairie Creek Co-op",
     acres: "245 acres",
     submissionDate: "10/12/2025",
+    closedDate: addDays("10/12/2025", 3),
     stage: "Lost",
     stageColor: "red",
     lostReason: "Submitted by Mistake",
@@ -247,6 +265,7 @@ export const leadsData: LeadData[] = [
     leadName: "Silver Brook Agriculture",
     acres: "380 acres",
     submissionDate: "10/14/2025",
+    closedDate: addDays("10/14/2025", 3),
     stage: "Lost",
     stageColor: "red",
     lostReason: "Split Submission",

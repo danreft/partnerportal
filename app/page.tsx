@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
-import { Select, Card, Row, Col, Statistic } from "antd"
+import { Select, Card, Row, Col } from "antd"
 import { Bar, Line } from "react-chartjs-2"
 import { useEffect, useRef, useState } from "react"
 import { leadsData } from "@/lib/mock-data"
@@ -21,6 +21,17 @@ import type { Chart as ChartType } from "chart.js"
 // no extra types needed from chart.js for the ref
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend)
+
+function Metric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="flex flex-col">
+      <div className="font-bold leading-none" style={{ fontSize: "2.5rem" }}>
+        {value}
+      </div>
+      <div className="mt-1 text-sm text-gray-500">{label}</div>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const lineChartRef = useRef<ChartType<"line"> | null>(null)
@@ -194,10 +205,6 @@ export default function DashboardPage() {
 
   // Top metrics: Referrals overview
   const referralsReceived = leadsData.length
-  const referralsAcres = leadsData.reduce(
-    (sum, l) => sum + (Number.parseInt(l.acres.replace(/[^0-9]/g, "")) || 0),
-    0
-  )
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
@@ -211,70 +218,37 @@ export default function DashboardPage() {
           {/* New: Referrals card placed to the left of In Process Deals */}
           <Col xs={24} sm={12} lg={6}>
             <Card styles={{ body: { padding: 16 } }}>
+              <Metric label="Referrals Received" value={referralsReceived} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
-                <Statistic
-                  title="Referrals Received"
-                  value={referralsReceived}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
+                <Metric label="In Process Deals" value={12} />
                 <div className="my-2 h-px w-full bg-gray-200" />
-                <Statistic
-                  title="Referrals Acres"
-                  value={referralsAcres}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
+                <Metric label="In Process Acres" value={5230} />
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
-                <Statistic
-                  title="In Process Deals"
-                  value={12}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
+                <Metric label="Won Deals" value={2} />
                 <div className="my-2 h-px w-full bg-gray-200" />
-                <Statistic
-                  title="In Process Acres"
-                  value={5230}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
+                <Metric label="Won Acres" value={871} />
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
             <Card styles={{ body: { padding: 16 } }}>
               <div className="flex flex-col">
-                <Statistic
-                  title="Completed Deals"
-                  value={2}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
+                <Metric label="Lost Deals" value={leadsData.filter((l) => l.stage === "Lost").length} />
                 <div className="my-2 h-px w-full bg-gray-200" />
-                <Statistic
-                  title="Completed Acres"
-                  value={871}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card styles={{ body: { padding: 16 } }}>
-              <div className="flex flex-col">
-                <Statistic
-                  title="Lost Deals"
-                  value={leadsData.filter((l) => l.stage === "Lost").length}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
-                />
-                <div className="my-2 h-px w-full bg-gray-200" />
-                <Statistic
-                  title="Lost Acres"
+                <Metric
+                  label="Lost Acres"
                   value={leadsData
                     .filter((l) => l.stage === "Lost")
-                    .reduce((sum, l) => sum + Number.parseInt(l.acres.replace(/[^0-9]/g, "")) || 0, 0)}
-                  valueStyle={{ fontSize: "2.5rem", fontWeight: "bold" }}
+                    .reduce((sum, l) => sum + (Number.parseInt(l.acres.replace(/[^0-9]/g, "")) || 0), 0)}
                 />
               </div>
             </Card>

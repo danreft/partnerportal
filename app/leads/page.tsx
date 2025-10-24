@@ -194,6 +194,34 @@ export default function LeadsPage() {
     },
   ]
 
+  // Lost-only columns: add Closed Date to the right of Stage
+  const lostColumns: ColumnsType<LeadData> = [
+    ...columns,
+    {
+      title: "Closed Date",
+      key: "closedDate",
+      dataIndex: "closedDate",
+      render: (_: any, record: LeadData) => {
+        return <span className="text-gray-800">{record.closedDate || "-"}</span>
+      },
+      sorter: (a, b) => new Date(a.closedDate || 0).getTime() - new Date(b.closedDate || 0).getTime(),
+    },
+  ]
+
+  // Won-only columns: add Closed Date to the right of Stage
+  const wonColumns: ColumnsType<LeadData> = [
+    ...columns,
+    {
+      title: "Closed Date",
+      key: "closedDate",
+      dataIndex: "closedDate",
+      render: (_: any, record: LeadData) => {
+        return <span className="text-gray-800">{record.closedDate || "-"}</span>
+      },
+      sorter: (a, b) => new Date(a.closedDate || 0).getTime() - new Date(b.closedDate || 0).getTime(),
+    },
+  ]
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Header />
@@ -254,10 +282,10 @@ export default function LeadsPage() {
             },
             {
               key: "2",
-              label: "Completed",
+              label: "Won",
               children: (
                 <Table
-                  columns={columns}
+                  columns={wonColumns}
                   dataSource={completedData}
                   expandable={{
                     expandedRowRender,
@@ -271,7 +299,7 @@ export default function LeadsPage() {
               label: "Lost",
               children: (
                 <Table
-                  columns={columns}
+                  columns={lostColumns}
                   dataSource={lostData}
                   expandable={{
                     expandedRowRender,
