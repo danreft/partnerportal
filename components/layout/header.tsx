@@ -46,15 +46,15 @@ export function Header() {
               Dashboard
             </Link>
             <Link
-              href="/leads"
+              href="/referrals"
               className={`flex items-center gap-2 border-b-2 pb-4 pt-5 text-sm font-medium transition-colors ${
-                pathname === "/leads"
+                pathname === "/referrals"
                   ? "border-[#4a9d6f] text-[#2d5f4a]"
                   : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <Users className="h-4 w-4" />
-              Leads
+              Referrals
             </Link>
           </nav>
         </div>

@@ -8,7 +8,7 @@ import type { ColumnsType } from "antd/es/table"
 import { leadsData, type LeadData } from "@/lib/mock-data"
 import { useState, useMemo } from "react"
 
-export default function LeadsPage() {
+export default function ReferralsPage() {
   const [searchText, setSearchText] = useState("")
   const [yearFilter, setYearFilter] = useState("This year")
   const [stageFilter, setStageFilter] = useState("All")
@@ -227,7 +227,7 @@ export default function LeadsPage() {
       <Header />
       <main className="flex-1 px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Leads</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Referrals</h1>
           <div className="flex gap-3">
             <Input
               placeholder="Search Lead Name..."
@@ -263,8 +263,22 @@ export default function LeadsPage() {
         </div>
 
         <Tabs
-          defaultActiveKey="1"
+          defaultActiveKey="0"
           items={[
+            {
+              key: "0",
+              label: "Leads",
+              children: (
+                <Table
+                  columns={columns}
+                  dataSource={filteredData}
+                  expandable={{
+                    expandedRowRender,
+                  }}
+                  pagination={false}
+                />
+              ),
+            },
             {
               key: "1",
               label: "Active Deals",
