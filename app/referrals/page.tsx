@@ -7,7 +7,7 @@ import { UserOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 import { leadsData, type LeadData } from "@/lib/mock-data"
 import dayjs, { type Dayjs } from "dayjs"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 
 // Global constants used for business filtering in the Leads tab
 const RP_REFERRAL_CODE = "JSMITH2024"
@@ -18,6 +18,24 @@ const CRM_ALLOWED_STAGES = [
   "RFS Qualified Paused",
 ] as const
 const REQUIRED_PIPELINE = "Soil Nutrient Load Pipeline"
+
+// Allowed stages for Active Deals (as business labels)
+const ACTIVE_ALLOWED_STAGES = new Set<string>([
+  // Provided business stages (and their synonyms as they appear in our mock data)
+  "RFS Submitted",
+  "Request for Services Submitted",
+  "Contact Form Submitted",
+  "Docusign",
+  "Agreement Sent",
+  "Service Contract Under Review",
+  "Soil Team",
+  "Soil Data Collection",
+  "Soils Complete/Analyst Queue",
+  "Analyst Team",
+  "Report Complete",
+  "Report Complete/Not Paid",
+  "Report Review NOT PAID",
+])
 
 export default function ReferralsPage() {
   const [searchText, setSearchText] = useState("")
@@ -73,17 +91,20 @@ export default function ReferralsPage() {
   }, [searchText])
 
   // Helpers to apply the current date range against different date fields
-  const isWithinRange = (dateStr?: string | null) => {
-    if (!submissionRange || (!submissionRange[0] && !submissionRange[1])) return true
-    if (!dateStr) return false
-    const time = new Date(dateStr).getTime()
-    const start = submissionRange[0]?.startOf("day").valueOf()
-    const end = submissionRange[1]?.endOf("day").valueOf()
-    if (start != null && end != null) return time >= start && time <= end
-    if (start != null) return time >= start
-    if (end != null) return time <= end
-    return true
-  }
+  const isWithinRange = useCallback(
+    (dateStr?: string | null) => {
+      if (!submissionRange || (!submissionRange[0] && !submissionRange[1])) return true
+      if (!dateStr) return false
+      const time = new Date(dateStr).getTime()
+      const start = submissionRange[0]?.startOf("day").valueOf()
+      const end = submissionRange[1]?.endOf("day").valueOf()
+      if (start != null && end != null) return time >= start && time <= end
+      if (start != null) return time >= start
+      if (end != null) return time <= end
+      return true
+    },
+    [submissionRange]
+  )
 
   // Split filtered data into Active (non-Lost) and Lost buckets
   const activeData = useMemo(
@@ -91,16 +112,16 @@ export default function ReferralsPage() {
       searchFiltered.filter(
         (l) => l.stage !== "Lost" && l.stage !== "Won" && isWithinRange(l.submissionDate)
       ),
-    [searchFiltered, submissionRange]
+    [searchFiltered, isWithinRange]
   )
   const lostData = useMemo(
     () => searchFiltered.filter((l) => l.stage === "Lost" && isWithinRange(l.closedDate)),
-    [searchFiltered, submissionRange]
+    [searchFiltered, isWithinRange]
   )
   // Won tab should filter by Closed Date
   const completedData = useMemo(
     () => searchFiltered.filter((l) => l.stage === "Won" && isWithinRange(l.closedDate)),
-    [searchFiltered, submissionRange]
+    [searchFiltered, isWithinRange]
   )
 
   // Helper to determine Open status (falls back to stage if dealStatus missing)
@@ -119,22 +140,6 @@ export default function ReferralsPage() {
   }
 
   // Active Deals tab filter: limit to the requested stages and Deal status = Open
-  const ACTIVE_ALLOWED_STAGES = new Set<string>([
-    // Provided business stages (and their synonyms as they appear in our mock data)
-    "RFS Submitted",
-    "Request for Services Submitted",
-    "Contact Form Submitted",
-    "Docusign",
-    "Agreement Sent",
-    "Service Contract Under Review",
-    "Soil Team",
-    "Soil Data Collection",
-    "Soils Complete/Analyst Queue",
-    "Analyst Team",
-    "Report Complete",
-    "Report Complete/Not Paid",
-    "Report Review NOT PAID",
-  ])
 
   const activeDealsFiltered = useMemo(
     () =>
@@ -160,7 +165,7 @@ export default function ReferralsPage() {
         isOpen(lead) &&
         isWithinRange(lead.submissionDate)
     )
-  }, [searchFiltered, submissionRange])
+  }, [searchFiltered, isWithinRange])
 
   // CSV export removed per request
 
@@ -201,38 +206,39 @@ export default function ReferralsPage() {
       return <div className="px-6 py-3">{contactSection}</div>
     }
 
-    const completedStages = record.progress!.stages.filter((s) => s.completed).length
-    const totalStages = record.progress!.stages.length
-    const currentIndex = record.progress!.stages.findIndex((s) => s.current)
-    const nextIndex = currentIndex >= 0 && currentIndex + 1 < totalStages ? currentIndex + 1 : -1
-
+    // Find the last completed index and the current index
+    const stages = record.progress!.stages;
+    const totalStages = stages.length;
+    const lastCompletedIndex = stages.map(s => s.completed).lastIndexOf(true);
+    const currentIndex = stages.findIndex(s => s.current);
+    // Only completed stages are green, current stage is grey, future stages are grey
     return (
       <div className="px-6 py-3">
         {contactSection}
         <div className="relative">
-          <div
-            className="mb-2 grid h-2 w-full overflow-hidden rounded-full"
-            style={{ gridTemplateColumns: `repeat(${totalStages}, minmax(0, 1fr))`, gap: 2 }}
-          >
-            {record.progress!.stages.map((_, i) => (
+          {/* Progress Bar */}
+          <div className="mb-2 flex h-2 w-full overflow-hidden rounded-full">
+            {stages.map((stage, i) => (
               <div
                 key={i}
                 className={
-                  i < completedStages
-                    ? "bg-green-600"
-                    : i === nextIndex
-                      ? "bg-gray-400"
-                      : "bg-gray-200"
+                  stage.completed
+                    ? "bg-green-600 flex-1"
+                    : stage.current
+                      ? "bg-gray-400 flex-1"
+                      : "bg-gray-200 flex-1"
                 }
+                style={{ marginRight: i < totalStages - 1 ? 2 : 0 }}
               />
             ))}
           </div>
+          {/* Step Indicators */}
           <div className="flex justify-between">
-            {record.progress!.stages.map((stage, index) => (
+            {stages.map((stage, index) => (
               <div
                 key={index}
                 className="flex flex-col items-center"
-                style={{ width: `${100 / record.progress!.stages.length}%` }}
+                style={{ width: `${100 / totalStages}%` }}
               >
                 <div className="mb-2">
                   {stage.completed ? (
@@ -382,7 +388,7 @@ export default function ReferralsPage() {
       key: "closedDate",
       dataIndex: "closedDate",
       render: (_: any, record: LeadData) => {
-        return <span className="text-gray-800">{formatMMDDYY(record.closedDate)}</span>
+        return <span className="text-gray-800">{formatMMDDYYYY(record.closedDate)}</span>
       },
       sorter: (a, b) => new Date(a.closedDate || 0).getTime() - new Date(b.closedDate || 0).getTime(),
     },
@@ -396,7 +402,7 @@ export default function ReferralsPage() {
       key: "closedDate",
       dataIndex: "closedDate",
       render: (_: any, record: LeadData) => {
-        return <span className="text-gray-800">{formatMMDDYY(record.closedDate)}</span>
+        return <span className="text-gray-800">{formatMMDDYYYY(record.closedDate)}</span>
       },
       sorter: (a, b) => new Date(a.closedDate || 0).getTime() - new Date(b.closedDate || 0).getTime(),
     },

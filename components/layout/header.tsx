@@ -1,10 +1,10 @@
 "use client"
 
-import { BarChart3, Users, User } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
-import { Drawer, Button, message, Divider } from "antd"
+import { Layout, Menu, Drawer, Button, message, Divider, Avatar, Space } from "antd"
+import { BarChartOutlined, TeamOutlined, UserOutlined, CopyOutlined, LogoutOutlined } from "@ant-design/icons"
 import { useState } from "react"
 
 export function Header() {
@@ -16,11 +16,13 @@ export function Header() {
     message.success(`${label} copied to clipboard!`)
   }
 
+  const selectedKey = pathname === "/referrals" ? "referrals" : "dashboard"
+
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
+    <Layout.Header style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: 0, minWidth: 320 }}>
+      <div className="mx-auto flex h-16 items-center justify-between px-6" style={{ minWidth: 320 }}>
+        <div className="flex items-center gap-6 min-w-0" style={{ flex: 1 }}>
+          <Link href="/" className="flex items-center gap-2 min-w-max">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-[#4a9d6f] p-1">
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Kv0q55cARkvzD4tpBpzdOKq8ulAcue.png"
@@ -32,42 +34,39 @@ export function Header() {
             </div>
             <span className="text-xl font-semibold text-[#2d5f4a]">Referral Partner Portal</span>
           </Link>
-
-          <nav className="flex gap-6">
-            <Link
-              href="/"
-              className={`flex items-center gap-2 border-b-2 pb-4 pt-5 text-sm font-medium transition-colors ${
-                pathname === "/"
-                  ? "border-[#4a9d6f] text-[#2d5f4a]"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </Link>
-            <Link
-              href="/referrals"
-              className={`flex items-center gap-2 border-b-2 pb-4 pt-5 text-sm font-medium transition-colors ${
-                pathname === "/referrals"
-                  ? "border-[#4a9d6f] text-[#2d5f4a]"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              Referrals
-            </Link>
-          </nav>
+          <div className="min-w-max">
+            <Menu
+              mode="horizontal"
+              selectedKeys={[selectedKey]}
+              style={{ background: "#fff", border: "none", fontWeight: 500, fontSize: 16, minWidth: 220 }}
+              items={[
+                {
+                  key: "dashboard",
+                  label: (
+                    <Link href="/" className="flex items-center gap-2">
+                      <BarChartOutlined /> Dashboard
+                    </Link>
+                  ),
+                },
+                {
+                  key: "referrals",
+                  label: (
+                    <Link href="/referrals" className="flex items-center gap-2">
+                      <TeamOutlined /> Referrals
+                    </Link>
+                  ),
+                },
+              ]}
+            />
+          </div>
         </div>
 
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4a9d6f] text-white">
-            <User className="h-4 w-4" />
-          </div>
-          <span className="font-medium">John Smith</span>
-        </button>
+        <Button type="text" onClick={() => setDrawerOpen(true)}>
+          <Space size={8}>
+            <Avatar size={32} style={{ backgroundColor: "#4a9d6f" }} icon={<UserOutlined />} />
+            <span className="font-medium text-gray-700">John Smith</span>
+          </Space>
+        </Button>
 
         <Drawer
           title="User Profile"
@@ -80,9 +79,7 @@ export function Header() {
             <div className="space-y-6">
               {/* User Info Section */}
               <div className="flex items-center gap-3">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#4a9d6f] text-white">
-                  <User className="h-8 w-8" />
-                </div>
+                <Avatar size={64} style={{ backgroundColor: "#4a9d6f" }} icon={<UserOutlined />} />
                 <div>
                   <div className="text-lg font-semibold text-gray-900">John Smith</div>
                   <div className="text-sm text-gray-500">john.smith@example.com</div>
@@ -104,6 +101,7 @@ export function Header() {
                       <Button
                         size="small"
                         type="default"
+                        icon={<CopyOutlined />}
                         onClick={() => copyToClipboard("https://soiltest.com/ref/johnsmith", "URL")}
                       >
                         Copy
@@ -117,9 +115,7 @@ export function Header() {
                       <div className="flex-1 text-sm font-mono text-gray-700 bg-gray-50 px-3 py-2 rounded">
                         JSMITH2024
                       </div>
-                      <Button size="small" type="default" onClick={() => copyToClipboard("JSMITH2024", "Code")}>
-                        Copy
-                      </Button>
+                      <Button size="small" type="default" icon={<CopyOutlined />} onClick={() => copyToClipboard("JSMITH2024", "Code")}>Copy</Button>
                     </div>
                   </div>
                 </div>
@@ -131,16 +127,16 @@ export function Header() {
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Settings</h3>
                 <div className="space-y-2">
-                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                  <Button type="default" block style={{ textAlign: "left" }}>
                     Change Password
                   </Button>
-                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                  <Button type="default" block style={{ textAlign: "left" }}>
                     Email Preferences
                   </Button>
-                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                  <Button type="default" block style={{ textAlign: "left" }}>
                     Notification Settings
                   </Button>
-                  <Button type="default" block className="text-left" style={{ textAlign: "left" }}>
+                  <Button type="default" block style={{ textAlign: "left" }}>
                     Check for Updates
                   </Button>
                 </div>
@@ -150,13 +146,13 @@ export function Header() {
             {/* Bottom area with Logout */}
             <div className="mt-auto pt-4">
               <Divider />
-              <Button type="default" danger block size="large">
+              <Button type="primary" danger block size="large" icon={<LogoutOutlined />}>
                 Logout
               </Button>
             </div>
           </div>
         </Drawer>
       </div>
-    </header>
+    </Layout.Header>
   )
 }
