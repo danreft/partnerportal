@@ -9,6 +9,11 @@ export interface LeadData {
   stageColor: string
   // Optional: when a lead is lost, capture the reason
   lostReason?: string
+  // CRM/Attribution fields (mocked)
+  referralCode?: string // Referral Partner code used for attribution
+  pipeline?: string // e.g., "Soil Nutrient Load Pipeline"
+  crmStage?: string // e.g., "Inbound Calls", "Invitation Email"
+  dealStatus?: "Open" | "Closed" // Derived in UI if not set
   contact: {
     name: string
     email: string
@@ -43,6 +48,10 @@ export const leadsData: LeadData[] = [
     submissionDate: "10/01/2025",
     stage: "Invitation Sent",
     stageColor: "blue",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Invitation Email",
+    dealStatus: "Open",
     contact: {
       name: "Roger Bohenkamp",
       email: "roger.bohenkamp@williamscompany.com",
@@ -70,6 +79,10 @@ export const leadsData: LeadData[] = [
     closedDate: "10/17/2025", // date of the 'Won' stage
     stage: "Won",
     stageColor: "green",
+    referralCode: "OTHER2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Report Complete/Not Paid",
+    dealStatus: "Closed",
     contact: {
       name: "Lena Hart",
       email: "lena.hart@greenvalley.com",
@@ -96,6 +109,10 @@ export const leadsData: LeadData[] = [
     closedDate: "10/19/2025", // date of the 'Won' stage
     stage: "Won",
     stageColor: "green",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Won",
+    dealStatus: "Closed",
     contact: {
       name: "Marcus Lee",
       email: "mlee@blueriver.coop",
@@ -121,6 +138,10 @@ export const leadsData: LeadData[] = [
     submissionDate: "09/23/2025",
     stage: "Contact Info Only",
     stageColor: "purple",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Inbound Contact Forms",
+    dealStatus: "Open",
     contact: {
       name: "David & Valier Appley",
       email: "david.appley@example.com",
@@ -146,6 +167,10 @@ export const leadsData: LeadData[] = [
     submissionDate: "09/16/2025",
     stage: "Soil Sampling & Data Collection",
     stageColor: "orange",
+    referralCode: "OTHER2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "RFS Qualified Paused",
+    dealStatus: "Open",
     contact: {
       name: "Steve L. Irlbeck",
       email: "steve.irlbeck@example.com",
@@ -171,6 +196,10 @@ export const leadsData: LeadData[] = [
     submissionDate: "08/28/2025",
     stage: "Invitation Sent",
     stageColor: "blue",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Invitation Email",
+    dealStatus: "Open",
     contact: {
       name: "Brian Fuller",
       email: "brian.fuller@example.com",
@@ -196,6 +225,10 @@ export const leadsData: LeadData[] = [
     submissionDate: "08/09/2025",
     stage: "Contact Info Only",
     stageColor: "purple",
+    referralCode: "OTHER2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Inbound Calls",
+    dealStatus: "Open",
     contact: {
       name: "Jeff Nunn",
       email: "jeff.nunn@example.com",
@@ -224,6 +257,10 @@ export const leadsData: LeadData[] = [
     stage: "Lost",
     stageColor: "red",
     lostReason: "Internal Testing",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Contact Form Submitted",
+    dealStatus: "Closed",
     contact: {
       name: "QA Team",
       email: "qa@example.com",
@@ -239,6 +276,10 @@ export const leadsData: LeadData[] = [
     stage: "Lost",
     stageColor: "red",
     lostReason: "Spam",
+    referralCode: "OTHER2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Contact Form Submitted",
+    dealStatus: "Closed",
     contact: {
       name: "Unknown",
       email: "spam@example.com",
@@ -254,6 +295,10 @@ export const leadsData: LeadData[] = [
     stage: "Lost",
     stageColor: "red",
     lostReason: "Submitted by Mistake",
+    referralCode: "JSMITH2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Contact Form Submitted",
+    dealStatus: "Closed",
     contact: {
       name: "Clerk Office",
       email: "clerk@example.com",
@@ -269,6 +314,10 @@ export const leadsData: LeadData[] = [
     stage: "Lost",
     stageColor: "red",
     lostReason: "Split Submission",
+    referralCode: "OTHER2024",
+    pipeline: "Soil Nutrient Load Pipeline",
+    crmStage: "Contact Form Submitted",
+    dealStatus: "Closed",
     contact: {
       name: "Records Dept",
       email: "records@example.com",
