@@ -29,10 +29,27 @@ export default function DashboardPage() {
   const lostLeads = leadsData.filter((l) => l.stage === "Lost")
   const activeLeads = leadsData.filter((l) => l.stage !== "Won" && l.stage !== "Lost")
 
-  const IN_PROCESS = {
-    deals: activeLeads.length,
-    acres: fmt(activeLeads.reduce((sum, l) => sum + parseAcres(l.acres), 0)),
+  // New bucket: Active Leads (not yet in Active Deals stages)
+  const activeLeadStages = [
+    "Contact Form Submitted",
+    "Request for Services Submitted",
+    "Invitation Sent",
+    "Inbound Calls",
+    "Inbound Contact Forms"
+  ]
+  const activeLeadsOnly = activeLeads.filter(l => activeLeadStages.includes(l.stage))
+  const ACTIVE_LEADS = {
+    deals: activeLeadsOnly.length,
+    acres: fmt(activeLeadsOnly.reduce((sum, l) => sum + parseAcres(l.acres), 0)),
   }
+
+  // Existing bucket: Active Deals (all other active stages)
+  const activeDealsOnly = activeLeads.filter(l => !activeLeadStages.includes(l.stage))
+  const ACTIVE_DEALS = {
+    deals: activeDealsOnly.length,
+    acres: fmt(activeDealsOnly.reduce((sum, l) => sum + parseAcres(l.acres), 0)),
+  }
+
   const REFERRALS = referrals
   const WON = {
     deals: wonLeads.length,
@@ -43,8 +60,10 @@ export default function DashboardPage() {
     acres: lostLeads.reduce((sum, l) => sum + parseAcres(l.acres), 0),
   }
 
-  // Stage table: derive current/furthest stage for active leads and map to 5 display buckets
+  // Stage table: derive current/furthest stage for active leads and map to display buckets using Partner Portal <-> Pipedrive mapping
   type BucketKey =
+    | "Contact Information"
+    | "Invitation Sent"
     | "RFS Submitted"
     | "Agreement Sent"
     | "Soil Data Collection"
@@ -52,6 +71,8 @@ export default function DashboardPage() {
     | "Report Complete | Not Paid"
 
   const order: BucketKey[] = [
+    "Contact Information",
+    "Invitation Sent",
     "RFS Submitted",
     "Agreement Sent",
     "Soil Data Collection",
@@ -59,41 +80,46 @@ export default function DashboardPage() {
     "Report Complete | Not Paid",
   ]
 
+  // Map Pipedrive stages to Partner Portal buckets
+  const pipedriveToBucket: Record<string, BucketKey> = {
+    "Inbound Calls": "Contact Information",
+    "Inbound Contact Forms": "Contact Information",
+    "Invitation Email": "Invitation Sent",
+    "RFS Qualified, Paused": "Invitation Sent",
+    "RFS Submitted": "RFS Submitted",
+    "Docusign": "Agreement Sent",
+    "Soil Team": "Soil Data Collection",
+    "Soils Complete/Analyst Queue": "Soil Data Collection",
+    "Analyst Team": "Analyst Team",
+    "Report Complete": "Analyst Team",
+    "Report Review NOT PAID": "Report Complete | Not Paid",
+    // fallback for direct stage names
+    "Contact Information": "Contact Information",
+    "Invitation Sent": "Invitation Sent",
+    "Agreement Sent": "Agreement Sent",
+    "Soil Data Collection": "Soil Data Collection",
+    "Report Complete | Not Paid": "Report Complete | Not Paid",
+  }
+
   const buckets: Record<BucketKey, { deals: number; acres: number }> = Object.fromEntries(
     order.map((k) => [k, { deals: 0, acres: 0 }])
   ) as Record<BucketKey, { deals: number; acres: number }>
 
   for (const lead of activeLeads) {
-    const stages = lead.progress?.stages ?? []
-    const current = stages.find((s) => s.current)
-    const completed = stages.filter((s) => s.completed)
-    const lastCompleted = completed.length ? completed[completed.length - 1] : undefined
-    const stageName = (current?.name || lastCompleted?.name || lead.stage || "").trim()
-
-    let key: BucketKey
-    switch (stageName) {
-      case "Request for Services Submitted":
-      case "Contact Form Submitted":
-        key = "RFS Submitted"
-        break
-      case "Agreement Sent":
-      case "Service Contract Under Review":
-        key = "Agreement Sent"
-        break
-      case "Soil Data Collection":
-        key = "Soil Data Collection"
-        break
-      case "Analyst Team":
-        key = "Analyst Team"
-        break
-      case "Report Complete/Not Paid":
-        key = "Report Complete | Not Paid"
-        break
-      default:
-        // Map other early-stage labels into the first bucket
-        key = "RFS Submitted"
+    // Try to use crmStage, then progress, then stage
+    let stageName = lead.crmStage || ""
+    if (!stageName && lead.progress?.stages) {
+      const stages = lead.progress.stages
+      const current = stages.find((s) => s.current)
+      const completed = stages.filter((s) => s.completed)
+      const lastCompleted = completed.length ? completed[completed.length - 1] : undefined
+      stageName = (current?.name || lastCompleted?.name || lead.stage || "").trim()
+    } else if (!stageName) {
+      stageName = lead.stage || ""
     }
 
+    // Map to bucket
+    const key = pipedriveToBucket[stageName] || "Contact Information"
     buckets[key].deals += 1
     buckets[key].acres += parseAcres(lead.acres)
   }
@@ -118,74 +144,48 @@ export default function DashboardPage() {
         <h1 className="mb-4 text-2xl font-semibold text-gray-900">Dashboard</h1>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
-          {/* Row 1: Left In-Process card (combined) and Right referrals */}
-          <div className="lg:col-span-2">
-            <Card title={<span className="text-gray-800">In-Process</span>} variant="outlined">
-              <div className="flex items-stretch divide-x divide-gray-200">
-                <div className="flex-none w-[220px] sm:w-[260px] pr-6 sm:pr-8">
-                  <Stat label="Deals" value={IN_PROCESS.deals} />
-                </div>
-                <div className="flex-1 pl-6 sm:pl-8">
-                  <Stat label="Acres" value={IN_PROCESS.acres} />
-                </div>
-              </div>
-            </Card>
-          </div>
-
+          {/* Row 1: Referrals, then Active Leads, then Active Deals */}
           <div>
             <Card title={<span className="text-gray-800">Referrals</span>} variant="outlined">
               <Stat label="Received" value={REFERRALS} />
             </Card>
           </div>
-
-          {/* Row 2: Left status table (span 2 cols) and Right Won/Lost stacked filling full height */}
-          <div className="lg:col-span-2">
-            <Card className="h-full overflow-hidden" title={<span className="text-gray-800">Status by Stage</span>}>
-              <Table
-                columns={stageColumns}
-                dataSource={stageRows}
-                pagination={false}
-                size="small"
-                rowKey="key"
-              />
-            </Card>
-          </div>
-
-          <div className="flex h-full flex-col justify-between gap-4">
-            <Card
-              title={
-                <span className="flex items-center gap-2 text-base text-gray-800">
-                  <CheckCircleFilled className="text-green-600" /> Won
-                </span>
-              }
-            >
+          <div className="lg:col-span-1">
+            <Card title={<span className="text-gray-800">Active Leads</span>} variant="outlined">
               <div className="flex items-stretch divide-x divide-gray-200">
                 <div className="flex-1 pr-6">
-                  <Stat label="Deals" value={WON.deals} />
+                  <Stat label="Leads" value={ACTIVE_LEADS.deals} />
                 </div>
                 <div className="flex-1 pl-6">
-                  <Stat label="Acres" value={fmt(WON.acres)} />
-                </div>
-              </div>
-            </Card>
-
-            <Card
-              title={
-                <span className="flex items-center gap-2 text-base text-gray-800">
-                  <StopOutlined className="text-red-600" /> Lost
-                </span>
-              }
-            >
-              <div className="flex items-stretch divide-x divide-gray-200">
-                <div className="flex-1 pr-6">
-                  <Stat label="Deals" value={LOST.deals} />
-                </div>
-                <div className="flex-1 pl-6">
-                  <Stat label="Acres" value={fmt(LOST.acres)} />
+                  <Stat label="Acres" value={ACTIVE_LEADS.acres} />
                 </div>
               </div>
             </Card>
           </div>
+          <div className="lg:col-span-1">
+            <Card title={<span className="text-gray-800">Active Deals</span>} variant="outlined">
+              <div className="flex items-stretch divide-x divide-gray-200">
+                <div className="flex-1 pr-6">
+                  <Stat label="Deals" value={ACTIVE_DEALS.deals} />
+                </div>
+                <div className="flex-1 pl-6">
+                  <Stat label="Acres" value={ACTIVE_DEALS.acres} />
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+        {/* Row 2: Left status table (span 2 cols) and Right Won/Lost stacked filling full height */}
+        <div className="lg:col-span-2">
+          <Card className="h-full overflow-hidden" title={<span className="text-gray-800">Status by Stage</span>}>
+            <Table
+              columns={stageColumns}
+              dataSource={stageRows}
+              pagination={false}
+              size="small"
+              rowKey="key"
+            />
+          </Card>
         </div>
       </main>
       <Footer />

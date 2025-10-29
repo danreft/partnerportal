@@ -38,6 +38,158 @@ const ACTIVE_ALLOWED_STAGES = new Set<string>([
 ])
 
 export default function ReferralsPage() {
+  // Expanded row for Active Deals tab: always show full progress bar
+  const expandedRowRenderActiveDeals = (record: LeadData) => {
+    const hasProgress = Boolean(record.progress)
+    const contactSection = (
+      <div className="mb-3 grid grid-cols-3 gap-4">
+        <div className="flex items-start gap-2">
+          <UserOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Contact</div>
+            <div className="font-medium">{record.contact.name}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <MailOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Email</div>
+            <div className="font-medium">{record.contact.email}</div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <PhoneOutlined className="text-gray-400" />
+          <div>
+            <div className="text-xs text-gray-500">Phone</div>
+            <div className="font-medium">{record.contact.phone}</div>
+          </div>
+        </div>
+      </div>
+    )
+    if (record.stage === "Lost" || !hasProgress) {
+      return <div className="px-6 py-3">{contactSection}</div>
+    }
+    // Define the business stages for Active Deals and Won tabs
+    const businessStages = [
+      "RFS Submitted",
+      "Docusign",
+      "Soil Team",
+      "Soils Complete/Analyst Queue",
+      "Analyst Team",
+      "Report Complete",
+      "Report Review | Not Paid",
+      "Won",
+    ];
+    // Map progress stages to business stages
+    const progressStages = businessStages.map((stageName) => {
+      // Find all progress stages that map to this business stage
+      let matches: any[] = [];
+      switch (stageName) {
+        case "RFS Submitted":
+          matches = record.progress?.stages.filter(s => ["Request for Services Submitted", "Contact Form Submitted", "RFS Submitted"].includes(s.name)) || [];
+          break;
+        case "Docusign":
+          matches = record.progress?.stages.filter(s => ["Agreement Sent", "Service Contract Under Review", "Docusign"].includes(s.name)) || [];
+          break;
+        case "Soil Team":
+          matches = record.progress?.stages.filter(s => ["Soil Data Collection", "Soil Team"].includes(s.name)) || [];
+          break;
+        case "Soils Complete/Analyst Queue":
+          matches = record.progress?.stages.filter(s => ["Soils Complete/Analyst Queue"].includes(s.name)) || [];
+          break;
+        case "Analyst Team":
+          matches = record.progress?.stages.filter(s => ["Analyst Team"].includes(s.name)) || [];
+          break;
+        case "Report Complete":
+          matches = record.progress?.stages.filter(s => ["Report Complete"].includes(s.name)) || [];
+          break;
+        case "Report Review | Not Paid":
+          matches = record.progress?.stages.filter(s => ["Report Complete/Not Paid", "Report Review NOT PAID"].includes(s.name)) || [];
+          break;
+        case "Won":
+          matches = record.progress?.stages.filter(s => ["Won"].includes(s.name)) || [];
+          break;
+        default:
+          matches = [];
+      }
+      // Mark as completed if any mapped stage is completed
+      // Mark as current if any mapped stage is current
+      // Use the date from the first matched stage with a date
+      return {
+        name: stageName,
+        completed: matches.some(s => s.completed),
+        current: matches.some(s => s.current),
+        date: matches.find(s => s.date)?.date,
+      };
+    });
+    const totalStages = progressStages.length;
+        const currentIdx = progressStages.findIndex(s => s.current);
+        return (
+          <div className="px-6 py-3">
+            {contactSection}
+            <div className="relative">
+              {/* Progress Bar */}
+              <div className="mb-2 flex h-2 w-full overflow-hidden rounded-full">
+                {progressStages.map((stage, i) => {
+                  let barColor;
+                  if (currentIdx === -1) {
+                    barColor = stage.completed ? "bg-green-600" : "bg-gray-200";
+                  } else if (i < currentIdx) {
+                    barColor = "bg-green-600";
+                  } else if (i === currentIdx) {
+                    barColor = "bg-gray-400";
+                  } else {
+                    barColor = "bg-gray-200";
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className={`${barColor} flex-1`}
+                      style={{ marginRight: i < totalStages - 1 ? 2 : 0 }}
+                    />
+                  );
+                })}
+              </div>
+              {/* Step Indicators */}
+              <div className="flex justify-between">
+                {progressStages.map((stage, index) => {
+                  let indicator;
+                  if (currentIdx === -1) {
+                    indicator = stage.completed ? (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
+                    );
+                  } else if (index < currentIdx) {
+                    indicator = (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
+                    );
+                  } else if (index === currentIdx) {
+                    indicator = (
+                      <div className="h-5 w-5 rounded-full border-4 border-green-600 bg-white" />
+                    );
+                  } else {
+                    indicator = (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
+                    );
+                  }
+                  return (
+                    <div
+                      key={index}
+                      className="flex flex-col items-center"
+                      style={{ width: `${100 / totalStages}%` }}
+                    >
+                      <div className="mb-2">{indicator}</div>
+                      <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                      {stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+  }
   const [searchText, setSearchText] = useState("")
   const [submissionRange, setSubmissionRange] = useState<
     [Dayjs | null, Dayjs | null] | null
@@ -206,19 +358,134 @@ export default function ReferralsPage() {
       return <div className="px-6 py-3">{contactSection}</div>
     }
 
-    // Find the last completed index and the current index
-    const stages = record.progress!.stages;
-    const totalStages = stages.length;
-    const lastCompletedIndex = stages.map(s => s.completed).lastIndexOf(true);
-    const currentIndex = stages.findIndex(s => s.current);
-    // Only completed stages are green, current stage is grey, future stages are grey
+    // Determine which tab is rendering this row
+    // Only show two stages for Leads tab, otherwise show all progress stages
+    const isLeadsTab = record.referralCode === RP_REFERRAL_CODE && record.pipeline === REQUIRED_PIPELINE && CRM_ALLOWED_STAGES.includes(record.crmStage as any)
+
+    if (isLeadsTab) {
+      // Only show two stages for Leads tab: Contact Information and Invitation Sent
+      const stagesRaw = record.progress!.stages
+      const invitationCurrent = stagesRaw.some(s => s.name === "Invitation Sent" && s.current) || record.stage === "Invitation Sent" || record.crmStage === "Invitation Sent"
+      const customStages = [
+        {
+          name: "Contact Information",
+          completed: stagesRaw.some(s => s.name === "Contact Form Submitted" && s.completed),
+          current: stagesRaw.some(s => s.name === "Contact Form Submitted" && s.current),
+          date: stagesRaw.find(s => s.name === "Contact Form Submitted")?.date,
+        },
+        {
+          name: "Invitation Sent",
+          completed: stagesRaw.some(s => s.name === "Invitation Sent" && s.completed),
+          current: invitationCurrent,
+          date: stagesRaw.find(s => s.name === "Invitation Sent")?.date,
+        },
+      ]
+      const totalStages = customStages.length
+      return (
+        <div className="px-6 py-3">
+          {contactSection}
+          <div className="relative">
+            {/* Progress Bar */}
+            <div className="mb-2 flex h-2 w-full overflow-hidden rounded-full">
+              {customStages.map((stage, i) => (
+                <div
+                  key={i}
+                  className={
+                    stage.completed
+                      ? "bg-green-600 flex-1"
+                      : stage.current
+                        ? "bg-gray-400 flex-1"
+                        : "bg-gray-200 flex-1"
+                  }
+                  style={{ marginRight: i < totalStages - 1 ? 2 : 0 }}
+                />
+              ))}
+            </div>
+            {/* Step Indicators */}
+            <div className="flex justify-between">
+              {customStages.map((stage, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col items-center"
+                  style={{ width: `${100 / totalStages}%` }}
+                >
+                  <div className="mb-2">
+                    {stage.completed ? (
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">
+                        ✓
+                      </div>
+                    ) : stage.current ? (
+                      <div className="h-5 w-5 rounded-full border-4 border-green-600 bg-white" />
+                    ) : (
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
+                    )}
+                  </div>
+                  <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                  {stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // For Won tab and Active Deals, use the business stages mapping
+    const businessStages = [
+      "RFS Submitted",
+      "Docusign",
+      "Soil Team",
+      "Soils Complete/Analyst Queue",
+      "Analyst Team",
+      "Report Complete",
+      "Report Review | Not Paid",
+      "Won",
+    ];
+    const progressStages = businessStages.map((stageName) => {
+      let matches: any[] = [];
+      switch (stageName) {
+        case "RFS Submitted":
+          matches = record.progress?.stages.filter(s => ["Request for Services Submitted", "Contact Form Submitted", "RFS Submitted"].includes(s.name)) || [];
+          break;
+        case "Docusign":
+          matches = record.progress?.stages.filter(s => ["Agreement Sent", "Service Contract Under Review", "Docusign"].includes(s.name)) || [];
+          break;
+        case "Soil Team":
+          matches = record.progress?.stages.filter(s => ["Soil Data Collection", "Soil Team"].includes(s.name)) || [];
+          break;
+        case "Soils Complete/Analyst Queue":
+          matches = record.progress?.stages.filter(s => ["Soils Complete/Analyst Queue"].includes(s.name)) || [];
+          break;
+        case "Analyst Team":
+          matches = record.progress?.stages.filter(s => ["Analyst Team"].includes(s.name)) || [];
+          break;
+        case "Report Complete":
+          matches = record.progress?.stages.filter(s => ["Report Complete"].includes(s.name)) || [];
+          break;
+        case "Report Review | Not Paid":
+          matches = record.progress?.stages.filter(s => ["Report Complete/Not Paid", "Report Review NOT PAID"].includes(s.name)) || [];
+          break;
+        case "Won":
+          matches = record.progress?.stages.filter(s => ["Won"].includes(s.name)) || [];
+          break;
+        default:
+          matches = [];
+      }
+      return {
+        name: stageName,
+        completed: matches.some(s => s.completed),
+        current: matches.some(s => s.current),
+        date: matches.find(s => s.date)?.date,
+      };
+    });
+    const totalStages = progressStages.length;
     return (
       <div className="px-6 py-3">
         {contactSection}
         <div className="relative">
           {/* Progress Bar */}
           <div className="mb-2 flex h-2 w-full overflow-hidden rounded-full">
-            {stages.map((stage, i) => (
+            {progressStages.map((stage, i) => (
               <div
                 key={i}
                 className={
@@ -234,7 +501,7 @@ export default function ReferralsPage() {
           </div>
           {/* Step Indicators */}
           <div className="flex justify-between">
-            {stages.map((stage, index) => (
+            {progressStages.map((stage, index) => (
               <div
                 key={index}
                 className="flex flex-col items-center"
@@ -493,7 +760,7 @@ export default function ReferralsPage() {
                   columns={activeColumns}
                   dataSource={activeDealsFiltered}
                   expandable={{
-                    expandedRowRender,
+                    expandedRowRender: expandedRowRenderActiveDeals,
                     defaultExpandedRowKeys: ["1"],
                   }}
                   pagination={false}
