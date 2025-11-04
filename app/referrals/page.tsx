@@ -69,41 +69,32 @@ export default function ReferralsPage() {
     if (record.stage === "Lost" || !hasProgress) {
       return <div className="px-6 py-3">{contactSection}</div>
     }
-    // Define the business stages for Active Deals and Won tabs
+    // Define the revised business stages for Active Deals and Won tabs
     const businessStages = [
       "RFS Submitted",
-      "Docusign",
-      "Soil Team",
-      "Soils Complete/Analyst Queue",
+      "Agreement Sent",
+      "Soil Data Collection",
       "Analyst Team",
-      "Report Complete",
-      "Report Review | Not Paid",
+      "Report Complete | Not Paid",
       "Won",
     ];
     // Map progress stages to business stages
     const progressStages = businessStages.map((stageName) => {
-      // Find all progress stages that map to this business stage
       let matches: any[] = [];
       switch (stageName) {
         case "RFS Submitted":
           matches = record.progress?.stages.filter(s => ["Request for Services Submitted", "Contact Form Submitted", "RFS Submitted"].includes(s.name)) || [];
           break;
-        case "Docusign":
+        case "Agreement Sent":
           matches = record.progress?.stages.filter(s => ["Agreement Sent", "Service Contract Under Review", "Docusign"].includes(s.name)) || [];
           break;
-        case "Soil Team":
-          matches = record.progress?.stages.filter(s => ["Soil Data Collection", "Soil Team"].includes(s.name)) || [];
-          break;
-        case "Soils Complete/Analyst Queue":
-          matches = record.progress?.stages.filter(s => ["Soils Complete/Analyst Queue"].includes(s.name)) || [];
+        case "Soil Data Collection":
+          matches = record.progress?.stages.filter(s => ["Soil Data Collection", "Soil Team", "Soils Complete/Analyst Queue"].includes(s.name)) || [];
           break;
         case "Analyst Team":
           matches = record.progress?.stages.filter(s => ["Analyst Team"].includes(s.name)) || [];
           break;
-        case "Report Complete":
-          matches = record.progress?.stages.filter(s => ["Report Complete"].includes(s.name)) || [];
-          break;
-        case "Report Review | Not Paid":
+        case "Report Complete | Not Paid":
           matches = record.progress?.stages.filter(s => ["Report Complete/Not Paid", "Report Review NOT PAID"].includes(s.name)) || [];
           break;
         case "Won":
@@ -112,9 +103,6 @@ export default function ReferralsPage() {
         default:
           matches = [];
       }
-      // Mark as completed if any mapped stage is completed
-      // Mark as current if any mapped stage is current
-      // Use the date from the first matched stage with a date
       return {
         name: stageName,
         completed: matches.some(s => s.completed),
@@ -581,7 +569,7 @@ export default function ReferralsPage() {
     },
   ]
 
-  // Map underlying progress/stage names to requested business labels for Active Deals display
+  // Map underlying progress/stage names to requested business labels for Active Deals and Won display
   const mapToBusinessStage = (name: string) => {
     switch (name) {
       case "Request for Services Submitted":
@@ -591,19 +579,18 @@ export default function ReferralsPage() {
       case "Agreement Sent":
       case "Service Contract Under Review":
       case "Docusign":
-        return "Docusign"
+        return "Agreement Sent"
       case "Soil Data Collection":
       case "Soil Team":
-        return "Soil Team"
       case "Soils Complete/Analyst Queue":
-        return "Soils Complete/Analyst Queue"
+        return "Soil Data Collection"
       case "Analyst Team":
         return "Analyst Team"
-      case "Report Complete":
-        return "Report Complete"
       case "Report Complete/Not Paid":
       case "Report Review NOT PAID":
-        return "Report Review NOT PAID"
+        return "Report Complete | Not Paid"
+      case "Won":
+        return "Won"
       default:
         return name
     }
@@ -647,11 +634,11 @@ export default function ReferralsPage() {
     },
   ]
 
-  // Lost-only columns: add Closed Date to the right of Stage
+  // Lost-only columns: add Lost Date to the right of Stage
   const lostColumns: ColumnsType<LeadData> = [
     ...columns,
     {
-      title: "Closed Date",
+      title: "Lost Date",
       key: "closedDate",
       dataIndex: "closedDate",
       render: (_: any, record: LeadData) => {
@@ -661,11 +648,11 @@ export default function ReferralsPage() {
     },
   ]
 
-  // Won-only columns: add Closed Date to the right of Stage
+  // Won-only columns: add Won Date to the right of Stage
   const wonColumns: ColumnsType<LeadData> = [
     ...columns,
     {
-      title: "Closed Date",
+      title: "Won Date",
       key: "closedDate",
       dataIndex: "closedDate",
       render: (_: any, record: LeadData) => {

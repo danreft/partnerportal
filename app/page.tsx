@@ -6,12 +6,14 @@ import { leadsData } from "@/lib/mock-data"
 import { Card, Table, Typography } from "antd"
 import { CheckCircleFilled, StopOutlined } from "@ant-design/icons"
 
+import { Row, Col, Space } from "antd"
+
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="flex flex-col">
-      <div className="text-4xl font-semibold leading-none tracking-tight">{value}</div>
-      <div className="mt-1 text-sm text-gray-500">{label}</div>
-    </div>
+    <Space direction="vertical" size={2} style={{ width: "100%" }}>
+      <Typography.Title level={2} style={{ margin: 0, fontWeight: 600, fontSize: 36, lineHeight: 1 }}>{value}</Typography.Title>
+      <Typography.Text type="secondary" style={{ fontSize: 14 }}>{label}</Typography.Text>
+    </Space>
   )
 }
 
@@ -70,9 +72,12 @@ export default function DashboardPage() {
     | "Analyst Team"
     | "Report Complete | Not Paid"
 
-  const order: BucketKey[] = [
+  // Revised: Split stages into Leads and Deals per new requirements
+  const leadStages: BucketKey[] = [
     "Contact Information",
     "Invitation Sent",
+  ]
+  const dealStages: BucketKey[] = [
     "RFS Submitted",
     "Agreement Sent",
     "Soil Data Collection",
@@ -102,7 +107,7 @@ export default function DashboardPage() {
   }
 
   const buckets: Record<BucketKey, { deals: number; acres: number }> = Object.fromEntries(
-    order.map((k) => [k, { deals: 0, acres: 0 }])
+    [...leadStages, ...dealStages].map((k) => [k, { deals: 0, acres: 0 }])
   ) as Record<BucketKey, { deals: number; acres: number }>
 
   for (const lead of activeLeads) {
@@ -124,69 +129,143 @@ export default function DashboardPage() {
     buckets[key].acres += parseAcres(lead.acres)
   }
 
-  const stageRows = order.map((stage) => ({
-    key: stage,
-    stage,
-    deals: buckets[stage].deals,
-    acres: buckets[stage].acres,
-  }))
+  // Combine for single table with section headers
+  const tableData = [
+    { key: 'leads-header', section: 'Leads', isHeader: true },
+    ...leadStages.map((stage) => ({
+      key: `lead-${stage}`,
+      stage,
+      deals: buckets[stage].deals,
+      acres: buckets[stage].acres,
+      isHeader: false,
+    })),
+    { key: 'deals-header', section: 'Deals', isHeader: true },
+    ...dealStages.map((stage) => ({
+      key: `deal-${stage}`,
+      stage,
+      deals: buckets[stage].deals,
+      acres: buckets[stage].acres,
+      isHeader: false,
+    })),
+  ]
 
   const stageColumns = [
-    { title: "Stage", dataIndex: "stage", key: "stage" },
-    { title: "Deals", dataIndex: "deals", key: "deals", align: "left" as const },
-    { title: "Acres", dataIndex: "acres", key: "acres", align: "left" as const },
+    {
+      title: '',
+      dataIndex: 'stage',
+      key: 'stage',
+      render: (text: string, record: any) => {
+        if (record.isHeader) {
+          return {
+            children: <Typography.Text strong>{record.section} by Stage</Typography.Text>,
+            props: { colSpan: 3 },
+          }
+        }
+        return text
+      },
+    },
+    {
+      title: 'Leads / Deals',
+      dataIndex: 'deals',
+      key: 'deals',
+      align: 'left' as const,
+      render: (_: any, record: any) => (record.isHeader ? { children: null, props: { colSpan: 0 } } : record.deals),
+    },
+    {
+      title: 'Acres',
+      dataIndex: 'acres',
+      key: 'acres',
+      align: 'left' as const,
+      render: (_: any, record: any) => (record.isHeader ? { children: null, props: { colSpan: 0 } } : record.acres),
+    },
   ]
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
       <Header />
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
-        <h1 className="mb-4 text-2xl font-semibold text-gray-900">Dashboard</h1>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr]">
-          {/* Row 1: Referrals, then Active Leads, then Active Deals */}
-          <div>
-            <Card title={<span className="text-gray-800">Referrals</span>} variant="outlined">
+      <main style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1, padding: 32 }}>
+        <Typography.Title level={3} style={{ marginBottom: 24, fontWeight: 600, color: "#111" }}>Dashboard</Typography.Title>
+        {/* Row 1: Referrals, Active Leads, Active Deals */}
+        <Row gutter={[24, 24]}>
+          <Col xs={24} lg={8}>
+            <Card title={<Typography.Text strong>Referrals</Typography.Text>} bordered>
               <Stat label="Received" value={REFERRALS} />
             </Card>
-          </div>
-          <div className="lg:col-span-1">
-            <Card title={<span className="text-gray-800">Active Leads</span>} variant="outlined">
-              <div className="flex items-stretch divide-x divide-gray-200">
-                <div className="flex-1 pr-6">
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title={<Typography.Text strong>Active Leads</Typography.Text>} bordered>
+              <Row gutter={0} align="middle">
+                <Col span={12}>
                   <Stat label="Leads" value={ACTIVE_LEADS.deals} />
-                </div>
-                <div className="flex-1 pl-6">
+                </Col>
+                <Col span={12}>
                   <Stat label="Acres" value={ACTIVE_LEADS.acres} />
-                </div>
-              </div>
+                </Col>
+              </Row>
             </Card>
-          </div>
-          <div className="lg:col-span-1">
-            <Card title={<span className="text-gray-800">Active Deals</span>} variant="outlined">
-              <div className="flex items-stretch divide-x divide-gray-200">
-                <div className="flex-1 pr-6">
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card title={<Typography.Text strong>Active Deals</Typography.Text>} bordered>
+              <Row gutter={0} align="middle">
+                <Col span={12}>
                   <Stat label="Deals" value={ACTIVE_DEALS.deals} />
-                </div>
-                <div className="flex-1 pl-6">
+                </Col>
+                <Col span={12}>
                   <Stat label="Acres" value={ACTIVE_DEALS.acres} />
-                </div>
-              </div>
+                </Col>
+              </Row>
             </Card>
-          </div>
-        </div>
-        {/* Row 2: Left status table (span 2 cols) and Right Won/Lost stacked filling full height */}
-        <div className="lg:col-span-2">
-          <Card className="h-full overflow-hidden" title={<span className="text-gray-800">Status by Stage</span>}>
-            <Table
-              columns={stageColumns}
-              dataSource={stageRows}
-              pagination={false}
-              size="small"
-              rowKey="key"
-            />
-          </Card>
-        </div>
+          </Col>
+        </Row>
+        {/* Row 2: Status Table (single compact table with sections) and Won/Lost Cards */}
+        <Row gutter={[24, 24]} style={{ marginTop: 24 }} align="stretch">
+          <Col xs={24} lg={16} style={{ display: "flex", flexDirection: "column" }}>
+            <Card style={{ flex: 1 }} bordered>
+              <Table
+                columns={stageColumns}
+                dataSource={tableData}
+                pagination={false}
+                size="small"
+                rowKey="key"
+                rowClassName={(record) => record.isHeader ? 'ant-table-row-section-header' : ''}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Row gutter={[0, 24]}>
+              <Col span={24}>
+                <Card
+                  title={<Space align="center"><CheckCircleFilled style={{ color: "#52c41a" }} /> <Typography.Text strong style={{ color: "#237804" }}>Won Deals</Typography.Text></Space>}
+                  bordered
+                >
+                  <Row gutter={0} align="middle">
+                    <Col span={12}>
+                      <Stat label="Deals" value={WON.deals} />
+                    </Col>
+                    <Col span={12}>
+                      <Stat label="Acres" value={fmt(WON.acres)} />
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+              <Col span={24}>
+                <Card
+                  title={<Space align="center"><StopOutlined style={{ color: "#ff4d4f" }} /> <Typography.Text strong style={{ color: "#a8071a" }}>Lost Deals</Typography.Text></Space>}
+                  bordered
+                >
+                  <Row gutter={0} align="middle">
+                    <Col span={12}>
+                      <Stat label="Deals" value={LOST.deals} />
+                    </Col>
+                    <Col span={12}>
+                      <Stat label="Acres" value={fmt(LOST.acres)} />
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
       </main>
       <Footer />
     </div>
