@@ -263,7 +263,6 @@ export default function ReferralsPage() {
     () => searchFiltered.filter((l) => l.stage === "Won" && isWithinRange(l.closedDate)),
     [searchFiltered, isWithinRange]
   )
-
   // Helper to determine Open status (falls back to stage if dealStatus missing)
   const isOpen = (lead: LeadData) => {
     if (lead.dealStatus) return lead.dealStatus === "Open"
@@ -341,8 +340,38 @@ export default function ReferralsPage() {
       </div>
     )
 
-    // If Lost or no progress, show only contact info
-    if (record.stage === "Lost" || !hasProgress) {
+    // If Lost, show contact info plus reason/comments
+    if (record.stage === "Lost") {
+      return (
+        <div className="space-y-4 px-6 py-3">
+          {contactSection}
+          <div className="rounded-lg border border-red-100 bg-red-50/80 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-red-600">
+              Lost Details
+            </div>
+            <div className="mt-2 space-y-3 text-sm text-gray-800">
+              <div>
+                <span className="font-medium text-gray-900">Reason:</span>{" "}
+                {record.lostReason || "Other"}
+              </div>
+              {record.lostComment ? (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Comments
+                  </div>
+                  <div className="mt-1 whitespace-pre-line text-gray-700">
+                    {record.lostComment}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // If no progress, show only contact info
+    if (!hasProgress) {
       return <div className="px-6 py-3">{contactSection}</div>
     }
 
