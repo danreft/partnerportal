@@ -123,6 +123,19 @@ export function Header() {
 
               <Divider />
 
+              {/* Partner Storefront */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Partner Storefront</h3>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 mb-1">Storefront URL</div>
+                    <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded">Coming soon!</div>
+                  </div>
+                </div>
+              </div>
+
+              <Divider />
+
               {/* Settings Menu */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Settings</h3>
