@@ -1,0 +1,15 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    "node_modules/**",
+    ".next/**",
+    "dist/**",
+    "build/**",
+    "out/**",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "rules": {
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}
