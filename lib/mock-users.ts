@@ -35,10 +35,10 @@ export const MOCK_USERS: AppUser[] = [
   {
     id: "sarah-johnson",
     name: "Sarah Johnson",
-    email: "sarah.johnson@boasafra.com",
+    email: "sarah.johnson@example.com",
     role: "manager",
     referralCode: "SJOHNSON2024",
-    title: "Regional Manager",
+    title: "Referral Team Manager",
     avatarColor: "#0369a1",
     initials: "SJ",
   },

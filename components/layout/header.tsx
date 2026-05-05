@@ -3,15 +3,15 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Image from "next/image"
-import { Layout, Menu, Drawer, Button, message, Divider, Avatar, Space } from "antd"
+import { Layout, Menu, Drawer, Button, message, Divider, Avatar, Space, Segmented } from "antd"
 import { BarChartOutlined, TeamOutlined, ClockCircleOutlined, UserOutlined, CopyOutlined, LogoutOutlined, AppstoreOutlined } from "@ant-design/icons"
 import { useState } from "react"
-import { useUser } from "@/components/user-context"
+import { useUser, type ViewMode } from "@/components/user-context"
 
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, setUser } = useUser()
+  const { user, setUser, viewMode, setViewMode } = useUser()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const copyToClipboard = (text: string, label: string) => {
@@ -96,6 +96,17 @@ export function Header() {
           </div>
         </div>
 
+        {isManager && (
+          <Segmented
+            value={viewMode}
+            onChange={(v) => setViewMode(v as ViewMode)}
+            options={[
+              { label: "Team", value: "team" },
+              { label: "Only Me", value: "self" },
+            ]}
+            style={{ marginRight: 12 }}
+          />
+        )}
         <Button type="text" onClick={() => setDrawerOpen(true)}>
           <Space size={8}>
             <Avatar

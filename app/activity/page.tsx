@@ -138,9 +138,7 @@ function buildActivityEvents(): ActivityEvent[] {
   return deduped.sort((a, b) => b.dateMs - a.dateMs)
 }
 
-const THIRTY_DAYS_AGO = Date.now() - 30 * 24 * 60 * 60 * 1000
-const activityEvents = buildActivityEvents().filter((e) => e.dateMs >= THIRTY_DAYS_AGO)
-const uniqueLeadNames = [...new Set(activityEvents.map((e) => e.leadName))].sort()
+const allActivityEvents = buildActivityEvents()
 
 const typeConfig: Record<EventType, { label: string; color: string }> = {
   new_referral: { label: "New Referral", color: "blue" },
@@ -158,7 +156,6 @@ const typeOptions = [
   { label: "Deal Lost", value: "deal_lost" },
 ]
 
-const leadOptions = uniqueLeadNames.map((name) => ({ label: name, value: name }))
 
 const columns: ColumnsType<ActivityEvent> = [
   {
@@ -208,30 +205,47 @@ const partnerColumn = {
   sorter: (a: ActivityEvent, b: ActivityEvent) => a.partnerName.localeCompare(b.partnerName),
 }
 
-const partnerOptions = MOCK_USERS.filter((u) => u.role === "partner").map((u) => ({
+const partnerOptions = MOCK_USERS.filter((u) => u.referralCode).map((u) => ({
   label: u.name,
   value: u.name,
 }))
 
 export default function ActivityPage() {
-  const { user } = useUser()
+  const { user, viewMode } = useUser()
   const isManager = user?.role === "manager"
   const [selectedTypes, setSelectedTypes] = useState<EventType[]>([])
   const [selectedLeads, setSelectedLeads] = useState<string[]>([])
   const [selectedPartners, setSelectedPartners] = useState<string[]>([])
 
-  const tableColumns = isManager
+  // Compute the 30-day window on the client inside useMemo to avoid hydration mismatch
+  const activityEvents = useMemo(() => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+    return allActivityEvents.filter((e) => e.dateMs >= thirtyDaysAgo)
+  }, [])
+
+  const leadOptions = useMemo(
+    () => [...new Set(activityEvents.map((e) => e.leadName))].sort().map((name) => ({ label: name, value: name })),
+    [activityEvents]
+  )
+
+  const tableColumns = isManager && viewMode !== "self"
     ? [columns[0], columns[1], columns[2], partnerColumn, columns[3], columns[4]]
     : columns
 
   const filteredEvents = useMemo(() => {
-    return activityEvents.filter((e) => {
+    const baseEvents = (isManager && viewMode === "self" && user?.referralCode)
+      ? activityEvents.filter((e) => {
+          const partnerName = partnerByCode[user.referralCode!]
+          return e.partnerName === partnerName
+        })
+      : activityEvents
+    return baseEvents.filter((e) => {
       if (selectedTypes.length > 0 && !selectedTypes.includes(e.type)) return false
       if (selectedLeads.length > 0 && !selectedLeads.includes(e.leadName)) return false
       if (selectedPartners.length > 0 && !selectedPartners.includes(e.partnerName)) return false
       return true
     })
-  }, [selectedTypes, selectedLeads, selectedPartners])
+  }, [activityEvents, selectedTypes, selectedLeads, selectedPartners, viewMode, user, isManager])
 
   const parseAcres = (acresStr: string) => parseInt(acresStr.replace(/[^0-9]/g, "") || "0", 10)
   const fmt = (n: number) => n.toLocaleString()
@@ -295,6 +309,7 @@ export default function ActivityPage() {
           </div>
         </div>
         <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+          {(selectedTypes.length === 0 || selectedTypes.includes("new_referral")) && (
           <Col xs={24} lg={6}>
             <Card title={<Typography.Text strong>New Referrals</Typography.Text>} variant="bordered">
               <Row gutter={0} align="middle">
@@ -313,6 +328,8 @@ export default function ActivityPage() {
               </Row>
             </Card>
           </Col>
+          )}
+          {(selectedTypes.length === 0 || selectedTypes.includes("stalled")) && (
           <Col xs={24} lg={6}>
             <Card
               title={<Space align="center"><ClockCircleFilled style={{ color: "#d97706" }} /><Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text></Space>}
@@ -334,6 +351,8 @@ export default function ActivityPage() {
               </Row>
             </Card>
           </Col>
+          )}
+          {(selectedTypes.length === 0 || selectedTypes.includes("deal_lost")) && (
           <Col xs={24} lg={6}>
             <Card
               title={<Space align="center"><StopOutlined style={{ color: "#ff4d4f" }} /><Typography.Text strong style={{ color: "#a8071a" }}>Deals Lost</Typography.Text></Space>}
@@ -355,6 +374,8 @@ export default function ActivityPage() {
               </Row>
             </Card>
           </Col>
+          )}
+          {(selectedTypes.length === 0 || selectedTypes.includes("deal_won")) && (
           <Col xs={24} lg={6}>
             <Card
               title={<Space align="center"><CheckCircleFilled style={{ color: "#52c41a" }} /><Typography.Text strong style={{ color: "#237804" }}>Won Deals</Typography.Text></Space>}
@@ -376,6 +397,7 @@ export default function ActivityPage() {
               </Row>
             </Card>
           </Col>
+          )}
         </Row>
         <Table
           columns={tableColumns}

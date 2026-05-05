@@ -45,8 +45,9 @@ const parseAcres = (acres: string) => {
   return digits ? parseInt(digits, 10) : 0
 }
 
-function buildTableData() {
-  const activeLeads = leadsData.filter((l) => l.stage !== "Won" && l.stage !== "Lost")
+function buildTableData(filterReferralCode?: string) {
+  const source = filterReferralCode ? leadsData.filter((l) => l.referralCode === filterReferralCode) : leadsData
+  const activeLeads = source.filter((l) => l.stage !== "Won" && l.stage !== "Lost")
   const buckets: Record<BucketKey, { deals: number; acres: number }> = Object.fromEntries(
     [...leadStages, ...dealStages].map((k) => [k, { deals: 0, acres: 0 }])
   ) as Record<BucketKey, { deals: number; acres: number }>
@@ -116,12 +117,13 @@ const stageColumns = [
   },
 ]
 
-export function StageTable() {
+export function StageTable({ filterReferralCode }: { filterReferralCode?: string }) {
+  const data = filterReferralCode ? buildTableData(filterReferralCode) : tableData
   return (
-    <Card style={{ flex: 1 }} variant="bordered">
+    <Card variant="bordered">
       <Table
         columns={stageColumns}
-        dataSource={tableData}
+        dataSource={data}
         pagination={false}
         rowKey="key"
         rowClassName={(record) => (record.isHeader ? "ant-table-row-section-header" : "")}

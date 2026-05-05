@@ -1,6 +1,6 @@
 "use client"
 
-import { DatePicker, Input, Select, Table, Tabs, Button, Alert } from "antd"
+import { DatePicker, Input, Select, Table, Tabs, Button, Alert, Badge } from "antd"
 import { UserOutlined, MailOutlined, PhoneOutlined, MailFilled } from "@ant-design/icons"
 import Link from "next/link"
 import type { ColumnsType } from "antd/es/table"
@@ -127,7 +127,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
               } else if (i < currentIdx) {
                 barColor = "bg-green-600"
               } else if (i === currentIdx) {
-                barColor = "bg-gray-400"
+                barColor = "bg-gray-700"
               } else {
                 barColor = "bg-gray-200"
               }
@@ -154,23 +154,30 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
                 )
               } else if (index === currentIdx) {
-                indicator = (
-                  <div className="h-5 w-5 rounded-full border-4 border-green-600 bg-white" />
-                )
+                indicator = null
               } else {
                 indicator = (
                   <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
                 )
               }
+              const isCurrent = index === currentIdx
               return (
                 <div
                   key={index}
                   className="flex flex-col items-center"
                   style={{ width: `${100 / totalStages}%` }}
                 >
-                  <div className="mb-2">{indicator}</div>
-                  <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
-                  {stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
+                  {isCurrent ? (
+                    <div className="mb-2 flex h-5 items-center justify-center">
+                      <div className="text-center text-xs font-bold text-gray-700">{stage.name}</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-2">{indicator}</div>
+                      <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                    </>
+                  )}
+                  {!isCurrent && stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
                 </div>
               )
             })}
@@ -182,16 +189,19 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
 
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab")
+  const partnerParam = searchParams.get("partner")
   const tabParamToKey: Record<string, string> = { stalled: "2", won: "3", lost: "4", "active-deals": "1" }
   const initialTab = tabParam ? (tabParamToKey[tabParam] ?? "0") : "0"
+  const initialPartners = partnerParam ? [partnerParam] : []
 
   const [searchText, setSearchText] = useState("")
   const [submissionRange, setSubmissionRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
   const [activeTab, setActiveTab] = useState(initialTab)
-  const [selectedPartners, setSelectedPartners] = useState<string[]>([])
+  const [selectedPartners, setSelectedPartners] = useState<string[]>(initialPartners)
 
   useEffect(() => {
     if (tabParam) setActiveTab(tabParamToKey[tabParam] ?? "0")
+    if (partnerParam) setSelectedPartners([partnerParam])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabParam])
 
@@ -207,7 +217,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
   }
 
   const partnerOptions = useMemo(
-    () => MOCK_USERS.filter((u) => u.role === "partner").map((u) => ({ label: u.name, value: u.referralCode! })),
+    () => MOCK_USERS.filter((u) => u.referralCode).map((u) => ({ label: u.name, value: u.referralCode! })),
     []
   )
 
@@ -373,7 +383,8 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
       const invitationCurrent =
         stagesRaw.some(s => s.name === "Invitation Sent" && s.current) ||
         record.stage === "Invitation Sent" ||
-        record.crmStage === "Invitation Sent"
+        record.crmStage === "Invitation Sent" ||
+        record.crmStage === "RFS Qualified Paused"
       const customStages = [
         {
           name: "Contact Information",
@@ -401,7 +412,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                     stage.completed
                       ? "bg-green-600 flex-1"
                       : stage.current
-                        ? "bg-gray-400 flex-1"
+                        ? "bg-gray-700 flex-1"
                         : "bg-gray-200 flex-1"
                   }
                   style={{ marginRight: i < totalStages - 1 ? 2 : 0 }}
@@ -415,17 +426,23 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                   className="flex flex-col items-center"
                   style={{ width: `${100 / totalStages}%` }}
                 >
-                  <div className="mb-2">
-                    {stage.completed ? (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
-                    ) : stage.current ? (
-                      <div className="h-5 w-5 rounded-full border-4 border-green-600 bg-white" />
-                    ) : (
-                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
-                    )}
-                  </div>
-                  <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
-                  {stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
+                  {stage.current ? (
+                    <div className="mb-2 flex h-5 items-center justify-center">
+                      <div className="text-center text-xs font-bold text-gray-700">{stage.name}</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-2">
+                        {stage.completed ? (
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
+                        )}
+                      </div>
+                      <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                    </>
+                  )}
+                  {!stage.current && stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
                 </div>
               ))}
             </div>
@@ -438,7 +455,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
       "RFS Submitted",
       "Docusign",
       "Soil Team",
-      "Soils Complete/Analyst Queue",
+      "Soils Complete / Analyst Queue",
       "Analyst Team",
       "Report Complete",
       "Report Review | Not Paid",
@@ -456,14 +473,14 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
         case "Soil Team":
           matches = record.progress?.stages.filter(s => ["Soil Data Collection", "Soil Team"].includes(s.name)) || []
           break
-        case "Soils Complete/Analyst Queue":
+        case "Soils Complete / Analyst Queue":
           matches = record.progress?.stages.filter(s => ["Soils Complete/Analyst Queue"].includes(s.name)) || []
           break
         case "Analyst Team":
           matches = record.progress?.stages.filter(s => ["Analyst Team"].includes(s.name)) || []
           break
         case "Report Complete":
-          matches = record.progress?.stages.filter(s => ["Report Complete"].includes(s.name)) || []
+          matches = record.progress?.stages.filter(s => ["Report Complete", "Report Complete/Not Paid"].includes(s.name)) || []
           break
         case "Report Review | Not Paid":
           matches = record.progress?.stages.filter(s => ["Report Complete/Not Paid", "Report Review NOT PAID"].includes(s.name)) || []
@@ -474,11 +491,19 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
         default:
           matches = []
       }
+      // Infer "Soils Complete / Analyst Queue" completion from later stages if not explicitly present
+      const allStages = record.progress?.stages ?? []
+      const laterStageNames = ["Analyst Team", "Report Complete", "Report Complete/Not Paid", "Report Review NOT PAID", "Won"]
+      const soilsCompleteInferred = stageName === "Soils Complete / Analyst Queue" && matches.length === 0 &&
+        allStages.some(s => laterStageNames.includes(s.name) && s.completed)
+      const inferredDate = soilsCompleteInferred
+        ? allStages.find(s => laterStageNames.includes(s.name) && s.completed && s.date)?.date
+        : undefined
       return {
         name: stageName,
-        completed: matches.some(s => s.completed),
-        current: matches.some(s => s.current),
-        date: matches.find(s => s.date)?.date,
+        completed: soilsCompleteInferred || matches.some(s => s.completed),
+        current: !soilsCompleteInferred && matches.some(s => s.current),
+        date: inferredDate ?? matches.find(s => s.date)?.date,
       }
     })
     const totalStages = progressStages.length
@@ -494,7 +519,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                   stage.completed
                     ? "bg-green-600 flex-1"
                     : stage.current
-                      ? "bg-gray-400 flex-1"
+                      ? "bg-gray-700 flex-1"
                       : "bg-gray-200 flex-1"
                 }
                 style={{ marginRight: i < totalStages - 1 ? 2 : 0 }}
@@ -508,16 +533,22 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                 className="flex flex-col items-center"
                 style={{ width: `${100 / totalStages}%` }}
               >
-                <div className="mb-2">
-                  {stage.completed ? (
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
-                  ) : stage.current ? (
-                    <div className="h-5 w-5 rounded-full border-4 border-green-600 bg-white" />
-                  ) : (
-                    <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
-                  )}
-                </div>
-                <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                {stage.current ? (
+                  <div className="mb-2 flex h-5 items-center justify-center">
+                    <div className="text-center text-xs font-bold text-gray-700">{stage.name}</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-2">
+                      {stage.completed ? (
+                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</div>
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-gray-300 bg-white" />
+                      )}
+                    </div>
+                    <div className="text-center text-xs font-medium text-gray-700">{stage.name}</div>
+                  </>
+                )}
                 {stage.date && <div className="text-xs text-gray-500">{stage.date}</div>}
               </div>
             ))}
@@ -754,7 +785,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
           items={[
             {
               key: "0",
-              label: "Leads",
+              label: <span>Leads <Badge count={leadsTabData.length} showZero color="#111827" style={{ marginLeft: 4, fontSize: 10, height: 16, lineHeight: "16px", minWidth: 16, padding: "0 4px" }} /></span>,
               children: (
                 <Table
                   columns={columns}
@@ -766,7 +797,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
             },
             {
               key: "1",
-              label: "Active Deals",
+              label: <span>Active Deals <Badge count={activeDealsFiltered.length} showZero color="#111827" style={{ marginLeft: 4, fontSize: 10, height: 16, lineHeight: "16px", minWidth: 16, padding: "0 4px" }} /></span>,
               children: (
                 <Table
                   columns={activeColumns}
@@ -781,7 +812,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
             },
             {
               key: "2",
-              label: "Stalled",
+              label: <span>Stalled <Badge count={stalledData.length} showZero color="#111827" style={{ marginLeft: 4, fontSize: 10, height: 16, lineHeight: "16px", minWidth: 16, padding: "0 4px" }} /></span>,
               children: (
                 <div>
                   <Alert
@@ -809,7 +840,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
             },
             {
               key: "3",
-              label: "Won",
+              label: <span>Won <Badge count={completedData.length} showZero color="#111827" style={{ marginLeft: 4, fontSize: 10, height: 16, lineHeight: "16px", minWidth: 16, padding: "0 4px" }} /></span>,
               children: (
                 <Table
                   columns={wonColumns}
@@ -821,7 +852,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
             },
             {
               key: "4",
-              label: "Lost",
+              label: <span>Lost <Badge count={lostData.length} showZero color="#111827" style={{ marginLeft: 4, fontSize: 10, height: 16, lineHeight: "16px", minWidth: 16, padding: "0 4px" }} /></span>,
               children: (
                 <Table
                   columns={lostColumns}
