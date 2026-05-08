@@ -11,7 +11,7 @@ export function AuthGuard({ children, role }: { children: ReactNode; role?: User
 
   useEffect(() => {
     if (isLoading) return
-    if (!user) { router.replace("/login"); return }
+    if (!user) { router.replace("/admin"); return }
     if (role && user.role !== role) {
       router.replace(user.role === "manager" ? "/manager" : "/")
     }

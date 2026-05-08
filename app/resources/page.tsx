@@ -4,8 +4,6 @@ import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { AuthGuard } from "@/components/auth-guard"
 import { StalledEmailTemplateContent } from "@/components/stalled-email-template-content"
-import { ConciergeInvoiceGenerator } from "@/components/concierge-invoice-generator"
-import { CollateralRequestForm } from "@/components/collateral-request-form"
 import { Typography, Tabs, Card } from "antd"
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
@@ -26,12 +24,28 @@ const tabItems = [
   {
     key: "concierge-invoice",
     label: "Concierge Invoice Generator",
-    children: <ConciergeInvoiceGenerator />,
+    children: (
+      <div style={{ overflow: "hidden", height: 900, borderRadius: 8 }}>
+        <iframe
+          src="https://boasafraag.com/rp-concierge-invoice-generator/"
+          style={{ width: "100%", height: 1600, border: "none", marginTop: -160, }}
+          title="Concierge Invoice Generator"
+        />
+      </div>
+    ),
   },
   {
     key: "collateral-request",
     label: "Collateral Request",
-    children: <CollateralRequestForm />,
+    children: (
+      <div style={{ overflow: "hidden", height: 900, borderRadius: 8 }}>
+        <iframe
+          src="https://boasafraag.com/rp-physical-collateral-request/"
+          style={{ width: "100%", height: 1560, border: "none", marginTop: -160, }}
+          title="Collateral Request"
+        />
+      </div>
+    ),
   },
   {
     key: "stalled-email",

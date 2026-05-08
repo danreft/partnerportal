@@ -22,7 +22,7 @@ export function Header() {
   const handleLogout = () => {
     setDrawerOpen(false)
     setUser(null)
-    router.push("/login")
+    router.push("/admin")
   }
 
   const isManager = user?.role === "manager"
@@ -71,7 +71,7 @@ export function Header() {
 
   return (
     <Layout.Header style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: 0, minWidth: 320 }}>
-      <div className="mx-auto flex h-16 items-center justify-between px-6" style={{ minWidth: 320 }}>
+      <div className="mx-auto flex h-16 items-center justify-between px-8" style={{ minWidth: 320, width: "100%" }}>
         <div className="flex items-center gap-6 min-w-0" style={{ flex: 1 }}>
           <Link href={isManager ? "/manager" : "/"} className="flex items-center gap-2 min-w-max">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-[#4a9d6f] p-1">

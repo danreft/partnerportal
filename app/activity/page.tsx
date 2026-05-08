@@ -280,20 +280,6 @@ export default function ActivityPage() {
               style={{ minWidth: 180 }}
               maxTagCount="responsive"
             />
-            <Select
-              mode="multiple"
-              allowClear
-              placeholder="All Leads / Deals"
-              options={leadOptions}
-              value={selectedLeads}
-              onChange={setSelectedLeads}
-              style={{ minWidth: 220 }}
-              maxTagCount="responsive"
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-              }
-            />
             {isManager && (
               <Select
                 mode="multiple"
