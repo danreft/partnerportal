@@ -13,7 +13,7 @@ export function AuthGuard({ children, role }: { children: ReactNode; role?: User
     if (isLoading) return
     if (!user) { router.replace("/admin"); return }
     if (role && user.role !== role) {
-      router.replace(user.role === "manager" ? "/manager" : "/")
+      router.replace(user.role === "manager" ? "/lead" : "/")
     }
   }, [user, isLoading, role, router])
 

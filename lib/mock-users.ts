@@ -38,7 +38,7 @@ export const MOCK_USERS: AppUser[] = [
     email: "sarah.johnson@example.com",
     role: "manager",
     referralCode: "SJOHNSON2024",
-    title: "Referral Team Manager",
+    title: "Referral Team Lead",
     avatarColor: "#0369a1",
     initials: "SJ",
   },

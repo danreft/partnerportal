@@ -57,7 +57,7 @@ interface PartnerRow {
 
 function makeLink(v: number, tab: string, referralCode: string, color?: string) {
   if (v === 0) return <span style={{ color }}>0</span>
-  const href = `/manager/referrals?tab=${tab}&partner=${referralCode}`
+  const href = `/lead/referrals?tab=${tab}&partner=${referralCode}`
   return (
     <Link href={href} style={{ color: color ?? "#2d5f4a", fontWeight: color ? 500 : undefined }}>
       {v}

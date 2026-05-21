@@ -28,14 +28,14 @@ export function Header() {
   const isManager = user?.role === "manager"
 
   const selectedKey = isManager
-    ? pathname === "/manager/referrals" ? "referrals" : pathname === "/activity" ? "activity" : pathname.startsWith("/resources") ? "resources" : "dashboard"
+    ? pathname === "/lead/referrals" ? "referrals" : pathname === "/activity" ? "activity" : pathname.startsWith("/resources") ? "resources" : "dashboard"
     : pathname.startsWith("/referrals") ? "referrals" : pathname === "/activity" ? "activity" : pathname.startsWith("/resources") ? "resources" : "dashboard"
 
   const menuItems = isManager
     ? [
         {
           key: "dashboard",
-          label: <Link href="/manager" className="flex items-center gap-2"><BarChartOutlined /> Dashboard</Link>,
+          label: <Link href="/lead" className="flex items-center gap-2"><BarChartOutlined /> Dashboard</Link>,
         },
         {
           key: "activity",
@@ -43,7 +43,7 @@ export function Header() {
         },
         {
           key: "referrals",
-          label: <Link href="/manager/referrals" className="flex items-center gap-2"><TeamOutlined /> Referrals</Link>,
+          label: <Link href="/lead/referrals" className="flex items-center gap-2"><TeamOutlined /> Referrals</Link>,
         },
         {
           key: "resources",
@@ -73,7 +73,7 @@ export function Header() {
     <Layout.Header style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", padding: 0, minWidth: 320 }}>
       <div className="mx-auto flex h-16 items-center justify-between px-8" style={{ minWidth: 320, width: "100%" }}>
         <div className="flex items-center gap-6 min-w-0" style={{ flex: 1 }}>
-          <Link href={isManager ? "/manager" : "/"} className="flex items-center gap-2 min-w-max">
+          <Link href={isManager ? "/lead" : "/"} className="flex items-center gap-2 min-w-max">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border-2 border-[#4a9d6f] p-1">
               <Image
                 src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Kv0q55cARkvzD4tpBpzdOKq8ulAcue.png"

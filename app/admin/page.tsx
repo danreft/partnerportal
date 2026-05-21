@@ -27,7 +27,7 @@ const { Text, Title } = Typography
 
 const roleLabel: Record<string, string> = {
   partner: "Referral Partner",
-  manager: "Referral Team Manager",
+  manager: "Referral Team Lead",
 }
 const roleColor: Record<string, string> = {
   partner: "green",
@@ -77,7 +77,7 @@ function ViewAsTab() {
     const user = MOCK_USERS.find((u) => u.id === selectedId)
     if (!user) return
     setUser(user)
-    router.push(user.role === "manager" ? "/manager" : "/")
+    router.push(user.role === "manager" ? "/lead" : "/")
   }
 
   const options = MOCK_USERS.map((u) => ({
