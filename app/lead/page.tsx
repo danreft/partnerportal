@@ -6,8 +6,9 @@ import { AuthGuard } from "@/components/auth-guard"
 import { leadsData, isLeadStalled } from "@/lib/mock-data"
 import { MOCK_USERS } from "@/lib/mock-users"
 import { useUser } from "@/components/user-context"
-import { Card, Table, Typography, Avatar } from "antd"
-import { CheckCircleFilled, ClockCircleFilled, StopOutlined } from "@ant-design/icons"
+import { useRouter } from "next/navigation"
+import { Card, Table, Typography, Avatar, Tooltip } from "antd"
+import { CheckCircleFilled, ClockCircleFilled, StopOutlined, InfoCircleOutlined } from "@ant-design/icons"
 import { Row, Col, Space } from "antd"
 import type { ColumnsType } from "antd/es/table"
 import { StageTable } from "@/components/stage-table"
@@ -136,6 +137,8 @@ const columns = buildColumns()
 
 export default function ManagerPage() {
   const { user, viewMode } = useUser()
+  const router = useRouter()
+  const go = (tab: string) => router.push(`/lead/referrals?tab=${tab}`)
 
   const filteredLeads = useMemo(() => {
     if (viewMode === "self" && user?.referralCode) {
@@ -199,17 +202,17 @@ export default function ManagerPage() {
           {/* Row 1: Summary stats */}
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={8}>
-              <Card title={<Typography.Text strong>Referrals</Typography.Text>} variant="bordered">
+              <Card hoverable title={<Typography.Text strong>Referrals</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("leads")}>
                 <Stat label={isOnlyMe ? "My referrals" : "Total across team"} value={TOTALS.referrals} />
               </Card>
             </Col>
             <Col xs={24} lg={8}>
-              <Card title={<Typography.Text strong>Active Leads</Typography.Text>} variant="bordered">
+              <Card hoverable title={<Typography.Text strong>Active Leads</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("leads")}>
                 <Stat label="Leads" value={TOTALS.activeLeads} />
               </Card>
             </Col>
             <Col xs={24} lg={8}>
-              <Card title={<Typography.Text strong>Active Deals</Typography.Text>} variant="bordered">
+              <Card hoverable title={<Typography.Text strong>Active Deals</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("active-deals")}>
                 <Stat label="Deals" value={TOTALS.activeDeals} />
               </Card>
             </Col>
@@ -218,8 +221,21 @@ export default function ManagerPage() {
           <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
             <Col xs={24} lg={8}>
               <Card
-                title={<Space align="center"><ClockCircleFilled style={{ color: "#d97706" }} /><Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text></Space>}
+                hoverable
+                title={
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <Space align="center">
+                      <ClockCircleFilled style={{ color: "#d97706" }} />
+                      <Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text>
+                    </Space>
+                    <Tooltip title="A lead or deal that has remained in Contact Information, Invitation Sent, Agreement Sent, or Report Complete | Not Paid for 30 days or more.">
+                      <InfoCircleOutlined style={{ color: "#9ca3af", fontSize: 14 }} onClick={(e) => e.stopPropagation()} />
+                    </Tooltip>
+                  </div>
+                }
                 variant="bordered"
+                style={{ cursor: "pointer" }}
+                onClick={() => go("stalled")}
               >
                 <Row gutter={0} align="middle">
                   <Col span={12}><Stat label="Deals" value={TOTALS.stalled} /></Col>
@@ -229,8 +245,11 @@ export default function ManagerPage() {
             </Col>
             <Col xs={24} lg={8}>
               <Card
+                hoverable
                 title={<Space align="center"><CheckCircleFilled style={{ color: "#52c41a" }} /><Typography.Text strong style={{ color: "#237804" }}>Won Deals</Typography.Text></Space>}
                 variant="bordered"
+                style={{ cursor: "pointer" }}
+                onClick={() => go("won")}
               >
                 <Row gutter={0} align="middle">
                   <Col span={12}><Stat label="Deals" value={TOTALS.won} /></Col>
@@ -240,8 +259,11 @@ export default function ManagerPage() {
             </Col>
             <Col xs={24} lg={8}>
               <Card
+                hoverable
                 title={<Space align="center"><StopOutlined style={{ color: "#ff4d4f" }} /><Typography.Text strong style={{ color: "#a8071a" }}>Lost Deals</Typography.Text></Space>}
                 variant="bordered"
+                style={{ cursor: "pointer" }}
+                onClick={() => go("lost")}
               >
                 <Row gutter={0} align="middle">
                   <Col span={12}><Stat label="Deals" value={TOTALS.lost} /></Col>

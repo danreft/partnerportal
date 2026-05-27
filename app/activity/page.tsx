@@ -1,20 +1,22 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { AuthGuard } from "@/components/auth-guard"
-import { leadsData, getStalledDate } from "@/lib/mock-data"
+import { leadsData, getStalledDate, isLeadStalled } from "@/lib/mock-data"
 import { MOCK_USERS } from "@/lib/mock-users"
 import { useUser } from "@/components/user-context"
-import { Table, Tag, Select, Card, Row, Col, Typography, Space } from "antd"
-import { ClockCircleFilled, StopOutlined, CheckCircleFilled } from "@ant-design/icons"
+import { Table, Tag, Select, Card, Row, Col, Typography, Space, Tooltip } from "antd"
+import { ClockCircleFilled, StopOutlined, CheckCircleFilled, InfoCircleOutlined } from "@ant-design/icons"
 import type { ColumnsType } from "antd/es/table"
 
 type EventType = "new_referral" | "stage_update" | "stalled" | "deal_won" | "deal_lost"
 
 interface ActivityEvent {
   key: string
+  leadKey: string
   date: string
   dateMs: number
   type: EventType
@@ -61,6 +63,7 @@ function buildActivityEvents(): ActivityEvent[] {
     const partnerName = partnerByCode[lead.referralCode ?? ""] ?? lead.referralCode ?? "-"
     events.push({
       key: `${lead.key}-new`,
+      leadKey: lead.key,
       date: formatDate(lead.submissionDate),
       dateMs: parseDate(lead.submissionDate),
       type: "new_referral",
@@ -73,9 +76,11 @@ function buildActivityEvents(): ActivityEvent[] {
     const stages = lead.progress?.stages ?? []
     stages.forEach((stage, i) => {
       if (!stage.date) return
+      if (stage.name === "Won") return
       const label = stageLabel[stage.name] ?? stage.name
       events.push({
         key: `${lead.key}-stage-${i}`,
+        leadKey: lead.key,
         date: formatDate(stage.date),
         dateMs: parseDate(stage.date),
         type: "stage_update",
@@ -90,19 +95,21 @@ function buildActivityEvents(): ActivityEvent[] {
     if (stalledDate) {
       events.push({
         key: `${lead.key}-stalled`,
+        leadKey: lead.key,
         date: formatDate(stalledDate),
         dateMs: parseDate(stalledDate),
         type: "stalled",
         leadName: lead.leadName,
         partnerName,
         acres: lead.acres,
-        description: "Entered Stalled status",
+        description: `Stalled in ${lead.stage}`,
       })
     }
 
     if (lead.stage === "Won" && lead.closedDate) {
       events.push({
         key: `${lead.key}-won`,
+        leadKey: lead.key,
         date: formatDate(lead.closedDate),
         dateMs: parseDate(lead.closedDate),
         type: "deal_won",
@@ -116,6 +123,7 @@ function buildActivityEvents(): ActivityEvent[] {
     if (lead.stage === "Lost" && lead.closedDate) {
       events.push({
         key: `${lead.key}-lost`,
+        leadKey: lead.key,
         date: formatDate(lead.closedDate),
         dateMs: parseDate(lead.closedDate),
         type: "deal_lost",
@@ -210,7 +218,28 @@ const partnerOptions = MOCK_USERS.filter((u) => u.referralCode).map((u) => ({
   value: u.name,
 }))
 
+const leadByKey = Object.fromEntries(leadsData.map((l) => [l.key, l]))
+
+const activeLeadStageSet = new Set([
+  "Contact Form Submitted", "Request for Services Submitted",
+  "Invitation Sent", "Inbound Calls", "Inbound Contact Forms", "Contact Info Only",
+])
+
+function getTabForEvent(event: ActivityEvent): string {
+  if (event.type === "stalled") return "stalled"
+  if (event.type === "deal_won") return "won"
+  if (event.type === "deal_lost") return "lost"
+  const lead = leadByKey[event.leadKey]
+  if (!lead) return "leads"
+  if (lead.stage === "Won") return "won"
+  if (lead.stage === "Lost") return "lost"
+  if (isLeadStalled(lead)) return "stalled"
+  if (activeLeadStageSet.has(lead.stage)) return "leads"
+  return "active-deals"
+}
+
 export default function ActivityPage() {
+  const router = useRouter()
   const { user, viewMode } = useUser()
   const isManager = user?.role === "manager"
   const [selectedTypes, setSelectedTypes] = useState<EventType[]>([])
@@ -318,7 +347,17 @@ export default function ActivityPage() {
           {(selectedTypes.length === 0 || selectedTypes.includes("stalled")) && (
           <Col xs={24} lg={6}>
             <Card
-              title={<Space align="center"><ClockCircleFilled style={{ color: "#d97706" }} /><Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text></Space>}
+              title={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <Space align="center">
+                    <ClockCircleFilled style={{ color: "#d97706" }} />
+                    <Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text>
+                  </Space>
+                  <Tooltip title="A lead or deal that has remained in Contact Information, Invitation Sent, Agreement Sent, or Report Complete | Not Paid for 30 days or more.">
+                    <InfoCircleOutlined style={{ color: "#9ca3af", fontSize: 14 }} />
+                  </Tooltip>
+                </div>
+              }
               variant="bordered"
             >
               <Row gutter={0} align="middle">
@@ -390,6 +429,14 @@ export default function ActivityPage() {
           dataSource={filteredEvents}
           rowKey="key"
           pagination={{ pageSize: 25, showSizeChanger: true }}
+          onRow={(record) => ({
+            style: { cursor: "pointer" },
+            onClick: () => {
+              const tab = getTabForEvent(record)
+              const base = isManager ? "/lead/referrals" : "/referrals"
+              router.push(`${base}?tab=${tab}&expand=${record.leadKey}`)
+            },
+          })}
         />
       </main>
       <Footer />

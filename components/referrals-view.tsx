@@ -190,6 +190,7 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get("tab")
   const partnerParam = searchParams.get("partner")
+  const expandParam = searchParams.get("expand")
   const tabParamToKey: Record<string, string> = { stalled: "2", won: "3", lost: "4", "active-deals": "1" }
   const initialTab = tabParam ? (tabParamToKey[tabParam] ?? "0") : "0"
   const initialPartners = partnerParam ? [partnerParam] : []
@@ -198,12 +199,14 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
   const [submissionRange, setSubmissionRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
   const [activeTab, setActiveTab] = useState(initialTab)
   const [selectedPartners, setSelectedPartners] = useState<string[]>(initialPartners)
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>(expandParam ? [expandParam] : [])
 
   useEffect(() => {
     if (tabParam) setActiveTab(tabParamToKey[tabParam] ?? "0")
     if (partnerParam) setSelectedPartners([partnerParam])
+    if (expandParam) setExpandedRowKeys([expandParam])
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabParam])
+  }, [tabParam, expandParam])
 
   const formatMMDDYYYY = (input?: string) => {
     if (!input) return "-"
@@ -790,7 +793,11 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                 <Table
                   columns={columns}
                   dataSource={leadsTabData}
-                  expandable={{ expandedRowRender }}
+                  expandable={{
+                    expandedRowRender,
+                    expandedRowKeys,
+                    onExpand: (expanded, record) => setExpandedRowKeys(expanded ? [record.key] : []),
+                  }}
                   pagination={false}
                 />
               ),
@@ -804,7 +811,8 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                   dataSource={activeDealsFiltered}
                   expandable={{
                     expandedRowRender: expandedRowRenderActiveDeals,
-                    defaultExpandedRowKeys: ["1"],
+                    expandedRowKeys,
+                    onExpand: (expanded, record) => setExpandedRowKeys(expanded ? [record.key] : []),
                   }}
                   pagination={false}
                 />
@@ -831,7 +839,11 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                   <Table
                     columns={stalledColumns}
                     dataSource={stalledData}
-                    expandable={{ expandedRowRender: expandedRowRenderActiveDeals }}
+                    expandable={{
+                      expandedRowRender: expandedRowRenderActiveDeals,
+                      expandedRowKeys,
+                      onExpand: (expanded, record) => setExpandedRowKeys(expanded ? [record.key] : []),
+                    }}
                     pagination={false}
                     rowKey="key"
                   />
@@ -845,7 +857,11 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                 <Table
                   columns={wonColumns}
                   dataSource={completedData}
-                  expandable={{ expandedRowRender }}
+                  expandable={{
+                    expandedRowRender,
+                    expandedRowKeys,
+                    onExpand: (expanded, record) => setExpandedRowKeys(expanded ? [record.key] : []),
+                  }}
                   pagination={false}
                 />
               ),
@@ -857,7 +873,11 @@ export function ReferralsView({ filterReferralCode }: ReferralsViewProps) {
                 <Table
                   columns={lostColumns}
                   dataSource={lostData}
-                  expandable={{ expandedRowRender }}
+                  expandable={{
+                    expandedRowRender,
+                    expandedRowKeys,
+                    onExpand: (expanded, record) => setExpandedRowKeys(expanded ? [record.key] : []),
+                  }}
                   pagination={false}
                 />
               ),

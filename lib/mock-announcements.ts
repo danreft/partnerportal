@@ -1,4 +1,4 @@
-export type AnnouncementType = "General" | "Webinar" | "Newsletter" | "Deadline" | "Update" | "Reminder"
+export type AnnouncementType = "General" | "Urgent" | "Webinar" | "Newsletter" | "Deadline" | "Update" | "Reminder"
 
 export interface AnnouncementDetail {
   label: string
@@ -24,6 +24,7 @@ export interface Announcement {
 
 export const announcementTagColor: Record<AnnouncementType, string> = {
   General: "default",
+  Urgent: "red",
   Webinar: "blue",
   Newsletter: "purple",
   Deadline: "error",

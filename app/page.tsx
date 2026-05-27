@@ -1,11 +1,12 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { leadsData, isLeadStalled } from "@/lib/mock-data"
 import { AuthGuard } from "@/components/auth-guard"
-import { Card, Typography } from "antd"
-import { CheckCircleFilled, ClockCircleFilled, StopOutlined } from "@ant-design/icons"
+import { Card, Typography, Tooltip } from "antd"
+import { CheckCircleFilled, ClockCircleFilled, StopOutlined, InfoCircleOutlined } from "@ant-design/icons"
 import { Row, Col, Space } from "antd"
 import { StageTable } from "@/components/stage-table"
 import { AnnouncementsCard } from "@/components/announcements-card"
@@ -22,6 +23,9 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const go = (tab: string) => router.push(`/referrals?tab=${tab}`)
+
   // Helpers
   const parseAcres = (acres: string) => {
     const digits = acres.replace(/[^0-9]/g, "")
@@ -82,12 +86,12 @@ export default function DashboardPage() {
         {/* Row 1: Referrals, Active Leads, Active Deals */}
         <Row gutter={[24, 24]}>
           <Col xs={24} lg={8}>
-            <Card title={<Typography.Text strong>Referrals</Typography.Text>} variant="bordered">
+            <Card hoverable title={<Typography.Text strong>Referrals</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("leads")}>
               <Stat label="Received" value={REFERRALS} />
             </Card>
           </Col>
           <Col xs={24} lg={8}>
-            <Card title={<Typography.Text strong>Active Leads</Typography.Text>} variant="bordered">
+            <Card hoverable title={<Typography.Text strong>Active Leads</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("leads")}>
               <Row gutter={0} align="middle">
                 <Col span={12}>
                   <Stat label="Leads" value={ACTIVE_LEADS.deals} />
@@ -99,7 +103,7 @@ export default function DashboardPage() {
             </Card>
           </Col>
           <Col xs={24} lg={8}>
-            <Card title={<Typography.Text strong>Active Deals</Typography.Text>} variant="bordered">
+            <Card hoverable title={<Typography.Text strong>Active Deals</Typography.Text>} variant="bordered" style={{ cursor: "pointer" }} onClick={() => go("active-deals")}>
               <Row gutter={0} align="middle">
                 <Col span={12}>
                   <Stat label="Deals" value={ACTIVE_DEALS.deals} />
@@ -115,8 +119,21 @@ export default function DashboardPage() {
         <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
           <Col xs={24} lg={8}>
             <Card
-              title={<Space align="center"><ClockCircleFilled style={{ color: "#d97706" }} /><Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text></Space>}
+              hoverable
+              title={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <Space align="center">
+                    <ClockCircleFilled style={{ color: "#d97706" }} />
+                    <Typography.Text strong style={{ color: "#92400e" }}>Stalled</Typography.Text>
+                  </Space>
+                  <Tooltip title="A lead or deal that has remained in Contact Information, Invitation Sent, Agreement Sent, or Report Complete | Not Paid for 30 days or more.">
+                    <InfoCircleOutlined style={{ color: "#9ca3af", fontSize: 14 }} onClick={(e) => e.stopPropagation()} />
+                  </Tooltip>
+                </div>
+              }
               variant="bordered"
+              style={{ cursor: "pointer" }}
+              onClick={() => go("stalled")}
             >
               <Row gutter={0} align="middle">
                 <Col span={12}><Stat label="Deals" value={STALLED.deals} /></Col>
@@ -126,8 +143,11 @@ export default function DashboardPage() {
           </Col>
           <Col xs={24} lg={8}>
             <Card
+              hoverable
               title={<Space align="center"><CheckCircleFilled style={{ color: "#52c41a" }} /><Typography.Text strong style={{ color: "#237804" }}>Won Deals</Typography.Text></Space>}
               variant="bordered"
+              style={{ cursor: "pointer" }}
+              onClick={() => go("won")}
             >
               <Row gutter={0} align="middle">
                 <Col span={12}><Stat label="Deals" value={WON.deals} /></Col>
@@ -137,8 +157,11 @@ export default function DashboardPage() {
           </Col>
           <Col xs={24} lg={8}>
             <Card
+              hoverable
               title={<Space align="center"><StopOutlined style={{ color: "#ff4d4f" }} /><Typography.Text strong style={{ color: "#a8071a" }}>Lost Deals</Typography.Text></Space>}
               variant="bordered"
+              style={{ cursor: "pointer" }}
+              onClick={() => go("lost")}
             >
               <Row gutter={0} align="middle">
                 <Col span={12}><Stat label="Deals" value={LOST.deals} /></Col>

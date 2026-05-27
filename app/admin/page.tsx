@@ -4,21 +4,29 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import {
   Button, Select, Tag, Card, Form, Input, DatePicker,
   TimePicker, Space, Divider, Typography, message, Modal,
-  Layout, Menu, InputNumber, Row, Col, Avatar,
+  Layout, Menu, InputNumber, Row, Col, Avatar, Drawer, List,
+  Upload, Radio, Tooltip,
 } from "antd"
+import type { UploadFile } from "antd/es/upload/interface"
 import {
   UserOutlined, TeamOutlined, PlusOutlined, DeleteOutlined,
   SendOutlined, CalendarOutlined, SettingOutlined,
-  EditOutlined, LoginOutlined,
+  EditOutlined, LoginOutlined, ClockCircleOutlined,
+  EyeOutlined, PaperClipOutlined, LinkOutlined,
+  WarningFilled,
 } from "@ant-design/icons"
 import { useUser } from "@/components/user-context"
 import { MOCK_USERS } from "@/lib/mock-users"
 import { announcementTagColor, type AnnouncementType } from "@/lib/mock-announcements"
 import { Footer } from "@/components/layout/footer"
 import dayjs from "dayjs"
+import "react-quill-new/dist/quill.snow.css"
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false })
 
 const { TextArea } = Input
 const { Text, Title } = Typography
@@ -33,12 +41,27 @@ const roleColor: Record<string, string> = {
   partner: "green",
   manager: "blue",
 }
-const announcementTypes: AnnouncementType[] = ["General", "Webinar", "Newsletter", "Deadline", "Update", "Reminder"]
+const announcementTypes: AnnouncementType[] = ["General", "Urgent", "Webinar", "Newsletter", "Deadline", "Update", "Reminder"]
 type FieldType = "date" | "month" | "dateTime" | "timeRange"
 interface TypeField { label: string; placeholder: string; fieldType?: FieldType }
 
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    [{ color: [] }, { background: [] }],
+    ["link"],
+    ["clean"],
+  ],
+}
+
 const typeFields: Record<AnnouncementType, TypeField[]> = {
   General: [],
+  Urgent: [
+    { label: "Action Required", placeholder: "e.g. Submit updated contact info immediately" },
+    { label: "Deadline", placeholder: "Select date and time", fieldType: "dateTime" },
+  ],
   Webinar: [
     { label: "Date", placeholder: "Select date", fieldType: "date" },
     { label: "Time", placeholder: "Select time range", fieldType: "timeRange" },
@@ -65,6 +88,67 @@ const typeFields: Record<AnnouncementType, TypeField[]> = {
 }
 
 interface LinkRow { label: string; url: string }
+
+interface ScheduledAnnouncement {
+  id: number
+  type: AnnouncementType
+  title: string
+  body: string
+  scheduledFor: string // display string e.g. "June 2, 2026 at 9:00 AM"
+  links: LinkRow[]
+  typeFieldValues: Record<string, string>
+}
+
+const mockScheduled: ScheduledAnnouncement[] = [
+  {
+    id: 101,
+    type: "Webinar",
+    title: "Summer Soil Sampling Workshop",
+    body: "Learn best practices for soil sampling during peak summer conditions. Our agronomists will walk through updated protocols and answer live questions.",
+    scheduledFor: "June 3, 2026 at 10:00 AM",
+    links: [{ label: "Register Now", url: "https://boasafraag.com/webinar" }],
+    typeFieldValues: { Date: "June 3, 2026", Time: "10:00 AM – 11:30 AM", Format: "Live Zoom Webinar", Host: "Boa Safra Ag Agronomy Team" },
+  },
+  {
+    id: 102,
+    type: "Deadline",
+    title: "Q2 Incentive Payout Cutoff",
+    body: "All qualifying referrals for Q2 must have a completed service agreement on file by end of day June 30 to be eligible for the Q2 incentive payout.",
+    scheduledFor: "June 10, 2026 at 8:00 AM",
+    links: [{ label: "View Incentive Terms", url: "https://boasafraag.com/incentives" }],
+    typeFieldValues: { Deadline: "June 30, 2026 at 11:59 PM", "Applies To": "All Q2 referral submissions", "Incentive Period": "Q2 2026" },
+  },
+  {
+    id: 103,
+    type: "Newsletter",
+    title: "June Partner Newsletter",
+    body: "This month's newsletter covers mid-year program performance highlights, an updated referral tier structure, and a recap of the Spring Soil Health Webinar.",
+    scheduledFor: "June 1, 2026 at 7:00 AM",
+    links: [
+      { label: "View Full Newsletter (PDF)", url: "https://boasafraag.com/newsletter" },
+      { label: "View Incentive Structure", url: "https://boasafraag.com/incentives" },
+    ],
+    typeFieldValues: { Issue: "June 2026", Published: "June 2026" },
+  },
+  {
+    id: 104,
+    type: "Reminder",
+    title: "Mid-Year Profile Review Reminder",
+    body: "Please take a moment to verify your contact details, service regions, and payment information are current before the July 1st audit.",
+    scheduledFor: "June 15, 2026 at 9:00 AM",
+    links: [{ label: "Update Your Profile", url: "https://boasafraag.com/profile" }],
+    typeFieldValues: { "Action Required By": "July 1, 2026", "Who Is Affected": "All active Referral Partners" },
+  },
+  {
+    id: 105,
+    type: "General",
+    title: "Portal Maintenance Window — June 8",
+    body: "The partner portal will be offline for scheduled maintenance on June 8 from 12:00 AM to 4:00 AM CST. Please plan accordingly.",
+    scheduledFor: "June 6, 2026 at 8:00 AM",
+    links: [],
+    typeFieldValues: {},
+  },
+]
 
 // ─── View As ────────────────────────────────────────────────────────────────
 
@@ -122,13 +206,30 @@ function ViewAsTab() {
 
 // ─── Draft Announcement ──────────────────────────────────────────────────────
 
-function DraftAnnouncementTab() {
+interface DraftAnnouncementTabProps {
+  scheduledDrawerOpen: boolean
+  onScheduledDrawerClose: () => void
+}
+
+function DraftAnnouncementTab({ scheduledDrawerOpen, onScheduledDrawerClose }: DraftAnnouncementTabProps) {
   const [form] = Form.useForm()
+  const [editForm] = Form.useForm()
   const [selectedType, setSelectedType] = useState<AnnouncementType>("General")
   const [links, setLinks] = useState<LinkRow[]>([{ label: "", url: "" }])
   const [scheduleOpen, setScheduleOpen] = useState(false)
   const [scheduleDate, setScheduleDate] = useState<dayjs.Dayjs | null>(null)
   const [scheduleTime, setScheduleTime] = useState<dayjs.Dayjs | null>(null)
+  const [editingItem, setEditingItem] = useState<ScheduledAnnouncement | null>(null)
+  const [editLinks, setEditLinks] = useState<LinkRow[]>([])
+  const [editType, setEditType] = useState<AnnouncementType>("General")
+  const [editScheduleDate, setEditScheduleDate] = useState<dayjs.Dayjs | null>(null)
+  const [editScheduleTime, setEditScheduleTime] = useState<dayjs.Dayjs | null>(null)
+
+  // New feature state
+  const [bodyHtml, setBodyHtml] = useState("")
+  const [attachments, setAttachments] = useState<UploadFile[]>([])
+  const [recipients, setRecipients] = useState<"all" | "mine">("all")
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const addLink = () => setLinks((prev) => [...prev, { label: "", url: "" }])
   const removeLink = (i: number) => setLinks((prev) => prev.filter((_, idx) => idx !== i))
@@ -140,17 +241,25 @@ function DraftAnnouncementTab() {
     form.setFieldValue("type", "General")
     setSelectedType("General")
     setLinks([{ label: "", url: "" }])
+    setBodyHtml("")
+    setAttachments([])
+    setRecipients("all")
   }
+
+  const isBodyEmpty = (html: string) => !html || html.replace(/<[^>]*>/g, "").trim() === ""
 
   const handleSend = () => {
     form.validateFields().then(() => {
-      message.success("Announcement sent successfully.")
+      if (isBodyEmpty(bodyHtml)) { message.warning("Body copy is required."); return }
+      const recipientLabel = recipients === "all" ? "all referral partners" : "your partners"
+      message.success(`Announcement sent to ${recipientLabel}.`)
       resetForm()
     })
   }
 
   const handleSchedule = () => {
     form.validateFields().then(() => {
+      if (isBodyEmpty(bodyHtml)) { message.warning("Body copy is required."); return }
       if (!scheduleDate || !scheduleTime) { message.warning("Please select both a date and time."); return }
       const formatted = `${scheduleDate.format("MMMM D, YYYY")} at ${scheduleTime.format("h:mm A")}`
       message.success(`Announcement scheduled for ${formatted}.`)
@@ -158,6 +267,42 @@ function DraftAnnouncementTab() {
       resetForm()
       setScheduleDate(null)
       setScheduleTime(null)
+    })
+  }
+
+  const handlePreview = () => {
+    const values = form.getFieldsValue()
+    if (!values.title && isBodyEmpty(bodyHtml)) {
+      message.warning("Add a title and body copy to preview the announcement.")
+      return
+    }
+    setPreviewOpen(true)
+  }
+
+  const openEditModal = (item: ScheduledAnnouncement) => {
+    setEditingItem(item)
+    setEditType(item.type)
+    setEditLinks(item.links.length > 0 ? item.links : [{ label: "", url: "" }])
+    editForm.resetFields()
+    // Only pre-fill plain text fields — DatePicker/TimePicker require dayjs objects,
+    // passing a raw string crashes the picker component at render time.
+    const textFieldValues: Record<string, string> = {}
+    typeFields[item.type].forEach((field) => {
+      if (!field.fieldType && item.typeFieldValues[field.label] !== undefined) {
+        textFieldValues[field.label] = item.typeFieldValues[field.label]
+      }
+    })
+    editForm.setFieldsValue({ type: item.type, title: item.title, body: item.body, ...textFieldValues })
+    // Parse "June 3, 2026 at 10:00 AM" into separate dayjs date and time values
+    const [datePart, timePart] = item.scheduledFor.split(" at ")
+    setEditScheduleDate(datePart ? dayjs(datePart, "MMMM D, YYYY") : null)
+    setEditScheduleTime(timePart ? dayjs(timePart, "h:mm A") : null)
+  }
+
+  const handleEditSave = () => {
+    editForm.validateFields().then(() => {
+      message.success("Scheduled announcement updated.")
+      setEditingItem(null)
     })
   }
 
@@ -214,12 +359,41 @@ function DraftAnnouncementTab() {
               </>
             )}
 
-            <Form.Item label="Body Copy" name="body" rules={[{ required: true, message: "Body copy is required" }]}>
-              <TextArea
-                placeholder="Write the full announcement content here. Use double line breaks to separate paragraphs."
-                rows={8}
-                style={{ resize: "vertical" }}
-              />
+            <Form.Item label="Recipients" name="recipients">
+              <Radio.Group value={recipients} onChange={(e) => setRecipients(e.target.value)} optionType="button" buttonStyle="solid">
+                <Radio.Button value="all">
+                  <Space size={6}><TeamOutlined />All Referral Partners</Space>
+                </Radio.Button>
+                <Radio.Button value="mine">
+                  <Space size={6}><UserOutlined />My Partners Only</Space>
+                </Radio.Button>
+              </Radio.Group>
+            </Form.Item>
+
+            <Form.Item label="Body Copy" required>
+              <div className="announcement-quill-wrap">
+                <style>{`.announcement-quill-wrap .ql-editor { min-height: 240px; max-height: 240px; overflow-y: auto; }`}</style>
+                <ReactQuill
+                  theme="snow"
+                  value={bodyHtml}
+                  onChange={setBodyHtml}
+                  modules={quillModules}
+                  placeholder="Write the full announcement content here…"
+                />
+              </div>
+            </Form.Item>
+
+            <Form.Item label="PDF Attachments">
+              <Upload
+                accept=".pdf"
+                multiple
+                fileList={attachments}
+                beforeUpload={() => false}
+                onChange={({ fileList }) => setAttachments(fileList)}
+                iconRender={() => <PaperClipOutlined />}
+              >
+                <Button icon={<PaperClipOutlined />}>Attach PDF</Button>
+              </Upload>
             </Form.Item>
 
             <Form.Item label="Related Links">
@@ -250,18 +424,119 @@ function DraftAnnouncementTab() {
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
-              <Space>
-                <Button type="primary" icon={<SendOutlined />} size="large" onClick={handleSend}>
-                  Send Now
-                </Button>
-                <Button icon={<CalendarOutlined />} size="large" onClick={() => setScheduleOpen(true)}>
-                  Schedule to Send Later
-                </Button>
-              </Space>
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Space wrap>
+                  <Button icon={<EyeOutlined />} size="large" onClick={handlePreview}>
+                    Preview
+                  </Button>
+                  <Button icon={<CalendarOutlined />} size="large" onClick={() => setScheduleOpen(true)}>
+                    Schedule to Send Later
+                  </Button>
+                  <Button type="primary" icon={<SendOutlined />} size="large" onClick={handleSend}>
+                    Send Now
+                  </Button>
+                </Space>
+              </div>
             </Form.Item>
           </Form>
         </Card>
       </Col>
+
+      {/* ── Preview Drawer ── */}
+      {(() => {
+        const vals = form.getFieldsValue()
+        const type: AnnouncementType = vals.type ?? "General"
+        const detailFields = typeFields[type].filter(f => !f.fieldType && vals[f.label])
+        const validLinks = links.filter(l => l.label || l.url)
+        const validAttachments = attachments.filter(f => f.name)
+        return (
+          <Drawer
+            open={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+            width={560}
+            placement="right"
+            title={
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", width: "100%" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {type === "Urgent" && <WarningFilled style={{ color: "#ef4444", fontSize: 14 }} />}
+                    <Text strong style={{ fontSize: 16, lineHeight: 1.3 }}>
+                      {vals.title || <span style={{ color: "#9ca3af", fontWeight: 400 }}>Untitled Announcement</span>}
+                    </Text>
+                    <Tag color={announcementTagColor[type]} style={{ margin: 0, flexShrink: 0 }}>{type}</Tag>
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {dayjs().format("MMMM D, YYYY")} &middot; {recipients === "all" ? "All Referral Partners" : "My Partners Only"}
+                  </Text>
+                </div>
+              </div>
+            }
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {/* Type-specific detail fields (text only) */}
+              {detailFields.length > 0 && (
+                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+                  {detailFields.map(f => (
+                    <div key={f.label} style={{ display: "flex", gap: 12 }}>
+                      <Text type="secondary" style={{ fontSize: 13, minWidth: 130, flexShrink: 0 }}>{f.label}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: 500 }}>{vals[f.label]}</Text>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Rich text body */}
+              {!isBodyEmpty(bodyHtml) ? (
+                <div
+                  className="ql-editor"
+                  style={{ padding: 0, fontSize: 14, lineHeight: 1.7, color: "#374151" }}
+                  dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                />
+              ) : (
+                <Text type="secondary" style={{ fontStyle: "italic" }}>No body copy yet.</Text>
+              )}
+
+              {/* PDF attachments */}
+              {validAttachments.length > 0 && (
+                <>
+                  <Divider style={{ margin: 0 }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <Text strong style={{ fontSize: 13, color: "#374151" }}>Attachments</Text>
+                    {validAttachments.map((f) => (
+                      <div key={f.uid} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "#2d5f4a", fontWeight: 500 }}>
+                        <PaperClipOutlined style={{ fontSize: 13 }} />
+                        {f.name}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Related links */}
+              {validLinks.length > 0 && (
+                <>
+                  <Divider style={{ margin: 0 }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <Text strong style={{ fontSize: 13, color: "#374151" }}>Related Links</Text>
+                    {validLinks.map((l, i) => (
+                      <a
+                        key={i}
+                        href={l.url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, color: "#2d5f4a", fontWeight: 500 }}
+                      >
+                        <LinkOutlined style={{ fontSize: 13 }} />
+                        {l.label || l.url}
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </Drawer>
+        )
+      })()}
 
       <Modal
         title="Schedule Announcement"
@@ -281,6 +556,177 @@ function DraftAnnouncementTab() {
             <TimePicker value={scheduleTime} onChange={setScheduleTime} style={{ width: "100%" }} size="large" use12Hours format="h:mm A" minuteStep={15} />
           </div>
         </div>
+      </Modal>
+
+      {/* ── Scheduled Announcements Drawer ── */}
+      <Drawer
+        title="Scheduled Announcements"
+        placement="right"
+        width={420}
+        open={scheduledDrawerOpen}
+        onClose={onScheduledDrawerClose}
+      >
+        <List
+          dataSource={mockScheduled}
+          itemLayout="vertical"
+          renderItem={(item) => (
+            <List.Item
+              key={item.id}
+              style={{ cursor: "pointer", padding: "12px 8px", borderRadius: 8, transition: "background 0.15s" }}
+              onClick={() => { openEditModal(item); onScheduledDrawerClose() }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Tag color={announcementTagColor[item.type]} style={{ margin: 0 }}>{item.type}</Tag>
+                  <Text strong style={{ fontSize: 14 }}>{item.title}</Text>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#6b7280", fontSize: 12, marginTop: 2 }}>
+                  <ClockCircleOutlined />
+                  <span>Scheduled for {item.scheduledFor}</span>
+                </div>
+                <Text type="secondary" style={{ fontSize: 12, marginTop: 2 }} ellipsis={{ tooltip: item.body }}>
+                  {item.body}
+                </Text>
+              </div>
+            </List.Item>
+          )}
+        />
+      </Drawer>
+
+      {/* ── Edit Scheduled Announcement Modal ── */}
+      <Modal
+        title={
+          <Space>
+            <EditOutlined />
+            <span>Edit Scheduled Announcement</span>
+          </Space>
+        }
+        open={!!editingItem}
+        onCancel={() => { setEditingItem(null); setEditScheduleDate(null); setEditScheduleTime(null) }}
+        onOk={handleEditSave}
+        okText="Save Changes"
+        width={700}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical" requiredMark={false} style={{ marginTop: 16 }}>
+          <Row gutter={16}>
+            <Col xs={24} md={16}>
+              <Form.Item label="Title" name="title" rules={[{ required: true, message: "Title is required" }]}>
+                <Input placeholder="e.g. Spring Soil Health Webinar" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Type" name="type" rules={[{ required: true, message: "Type is required" }]}>
+                <Select
+                  placeholder="Select type..."
+                  size="large"
+                  onChange={(v) => { setEditType(v); editForm.resetFields(typeFields[v as AnnouncementType].map(f => f.label)) }}
+                  options={announcementTypes.map((t) => ({
+                    value: t,
+                    label: <Tag color={announcementTagColor[t]} style={{ margin: 0 }}>{t}</Tag>,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {editType && typeFields[editType].length > 0 && (
+            <>
+              <Divider orientation="left" orientationMargin={0} style={{ fontSize: 12, color: "#9ca3af", marginTop: 0 }}>
+                {editType} Details
+              </Divider>
+              <Row gutter={16}>
+                {typeFields[editType].map((field) => (
+                  <Col xs={24} md={12} key={field.label}>
+                    <Form.Item label={field.label} name={field.label}>
+                      {field.fieldType === "date" ? (
+                        <DatePicker style={{ width: "100%" }} format="MMMM D, YYYY" />
+                      ) : field.fieldType === "month" ? (
+                        <DatePicker picker="month" style={{ width: "100%" }} format="MMMM YYYY" />
+                      ) : field.fieldType === "dateTime" ? (
+                        <DatePicker showTime use12Hours format="MMMM D, YYYY h:mm A" style={{ width: "100%" }} minuteStep={15} />
+                      ) : field.fieldType === "timeRange" ? (
+                        <TimePicker.RangePicker use12Hours format="h:mm A" minuteStep={15} style={{ width: "100%" }} />
+                      ) : (
+                        <Input placeholder={field.placeholder} />
+                      )}
+                    </Form.Item>
+                  </Col>
+                ))}
+              </Row>
+            </>
+          )}
+
+          <Form.Item label="Body Copy" name="body" rules={[{ required: true, message: "Body copy is required" }]}>
+            <TextArea
+              placeholder="Write the full announcement content here."
+              rows={6}
+              style={{ resize: "vertical" }}
+            />
+          </Form.Item>
+
+          <Form.Item label="Related Links">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {editLinks.map((link, i) => (
+                <Space key={i} style={{ width: "100%" }} align="start">
+                  <Input
+                    placeholder="Label"
+                    value={link.label}
+                    onChange={(e) => setEditLinks((prev) => prev.map((l, idx) => idx === i ? { ...l, label: e.target.value } : l))}
+                    style={{ width: 160 }}
+                  />
+                  <Input
+                    placeholder="https://..."
+                    value={link.url}
+                    onChange={(e) => setEditLinks((prev) => prev.map((l, idx) => idx === i ? { ...l, url: e.target.value } : l))}
+                    style={{ width: 260 }}
+                  />
+                  {editLinks.length > 1 && (
+                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setEditLinks((prev) => prev.filter((_, idx) => idx !== i))} />
+                  )}
+                </Space>
+              ))}
+              <Button type="dashed" icon={<PlusOutlined />} onClick={() => setEditLinks((prev) => [...prev, { label: "", url: "" }])} style={{ alignSelf: "flex-start", marginTop: 4 }}>
+                Add Link
+              </Button>
+            </div>
+          </Form.Item>
+
+          <Divider orientation="left" orientationMargin={0} style={{ fontSize: 12, color: "#9ca3af", margin: "8px 0 16px" }}>
+            Scheduled Send Time
+          </Divider>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#374151" }}>Send Date</div>
+                <DatePicker
+                  value={editScheduleDate}
+                  onChange={setEditScheduleDate}
+                  style={{ width: "100%" }}
+                  size="large"
+                  format="MMMM D, YYYY"
+                  disabledDate={(d) => d.isBefore(dayjs().startOf("day"))}
+                />
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 6, color: "#374151" }}>Send Time</div>
+                <TimePicker
+                  value={editScheduleTime}
+                  onChange={setEditScheduleTime}
+                  style={{ width: "100%" }}
+                  size="large"
+                  use12Hours
+                  format="h:mm A"
+                  minuteStep={15}
+                />
+              </div>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
     </Row>
   )
@@ -411,16 +857,29 @@ const tabTitles: Record<string, string> = {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("view-as")
+  const [scheduledDrawerOpen, setScheduledDrawerOpen] = useState(false)
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f9fafb" }}>
       <AdminHeader activeKey={activeTab} onSelect={setActiveTab} />
       <main style={{ width: "100%", maxWidth: 1200, margin: "0 auto", flex: 1, padding: 32 }}>
-        <Title level={3} style={{ marginBottom: 24, fontWeight: 600, color: "#111" }}>
-          {tabTitles[activeTab]}
-        </Title>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, fontWeight: 600, color: "#111" }}>
+            {tabTitles[activeTab]}
+          </Title>
+          {activeTab === "draft-announcement" && (
+            <Button icon={<CalendarOutlined />} onClick={() => setScheduledDrawerOpen(true)}>
+              View Scheduled
+            </Button>
+          )}
+        </div>
         {activeTab === "view-as" && <ViewAsTab />}
-        {activeTab === "draft-announcement" && <DraftAnnouncementTab />}
+        {activeTab === "draft-announcement" && (
+          <DraftAnnouncementTab
+            scheduledDrawerOpen={scheduledDrawerOpen}
+            onScheduledDrawerClose={() => setScheduledDrawerOpen(false)}
+          />
+        )}
         {activeTab === "customize" && <CustomizeTab />}
       </main>
       <Footer />
